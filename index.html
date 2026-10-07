@@ -397,6 +397,24 @@ body.view #tagline{display:flex}
 #share .grid svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
 #share #shareX{padding:9px;border-color:transparent;color:var(--ink3)}
+/* 生成链接要等一会（缩图、压缩、再请服务器发一条短链），网络差时能到好几秒。
+   这段等待画成一颗圈：整排按钮淡出，圈在卡片正中转；好了圈消失、两颗按钮连文字一起回来。
+   圈绝对定位在 grid 正中，按钮只改透明度、不离开布局 —— 卡片高度两态一致，切换那一下不跳。 */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadePulse{0%,100%{opacity:.35}50%{opacity:1}}
+#share .grid{position:relative}
+#share .grid button{transition:background .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .08s ease,opacity .18s ease}
+#share .card.loading .grid button{opacity:0;pointer-events:none}
+#share .grid .spin{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;display:none;
+  fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;animation:spin .9s linear infinite}
+#share .grid .spin .trk{opacity:.15}
+#share .grid .spin .arc{stroke-dasharray:14 43}
+#share .card.loading .grid .spin{display:block}
+/* 减动效：靠下那条全局规则会把一切动画压到 0.001ms，圈就定格成一个缺口的圆环，看着像坏了。
+   这里用更高的选择器权重盖过它，改成透明度呼吸 —— 位置不动，只改明暗，仍是「还在忙」的意思。 */
+@media(prefers-reduced-motion:reduce){
+  #share .card.loading .grid .spin{animation:fadePulse 1.4s ease-in-out infinite !important}
+}
 /* 小红书版那两处提示（分享框的 #wxHint、导出面板的 #expHint）：容器禁外链、也禁剪贴板，
    所以它们只能是可长按选中的纯文本。pre-line 让 JS 写进去的 \n 真断行（文案自己断好了）；
    word-break 只当兜底 —— 窄到 320px 都还放得下，真到极限也宁可断字，不撑破卡片。 */
@@ -712,6 +730,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
  <div class="grid">
   <button id="shareGo" title="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg><span>分享给好友</span></button>
   <button class="ghost" id="shareCopy" title="复制链接"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制链接</span></button>
+  <svg class="spin" viewBox="0 0 24 24"><circle class="trk" cx="12" cy="12" r="9"/><circle class="arc" cx="12" cy="12" r="9"/></svg>
  </div>
  <p id="wxHint" hidden></p>
  <button class="ghost" id="shareX">关闭</button></div></div>
@@ -767,7 +786,7 @@ const isMini=()=>!!MT();
 /* 平台专属实现各自往这几个口子上挂；被构建剥掉的那一边永远是 null。
    留空接口位、而不是让两边互相调用，是为了让被剥掉的名字不出现在留存的代码里
    —— 否则静态扫描仍会在包里扫到 fetch / 剪贴板这些禁用调用。 */
-let loadSharedHook=null,gifHook=null,sizeCheckHook=null,shareOpenHook=null,shareGoHook=null,shareCopyHook=null;
+let loadSharedHook=null,gifHook=null,sizeCheckHook=null,shareOpenHook=null,shareGoHook=null,shareCopyHook=null,shareGen=0;
 
 /* ===== 能力基线 =====
    目标内核是 Android 8.1 出场 WebView（Chrome 61）。两处探测各给 html 挂一个 class，
@@ -1883,14 +1902,21 @@ stkOn=true;
 	const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
 	const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
 	shareOpenHook=async()=>{
+	 const card=$('share').querySelector('.card'),n=++shareGen;
+	 card.classList.add('loading');                                // 整排按钮退场，只留中间那颗圈
 	 $('shareGo').disabled=true;$('shareCopy').disabled=true;
-	 try{await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
+	 let ok=false;
+	 try{await makeURL();ok=true;
 	  let why='';
 	  if(shareFail==='too-big')why='图片过多，链接偏长可能发不出去。';
 	  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，链接偏长可能发不出去。';
 	  else if(shareFail)why='短链生成失败，链接偏长可能发不出去。';
 	  if(why)toast(why)}
-	 catch(e){toast('链接生成失败，请检查网络。')}};
+	 catch(e){toast('链接生成失败，请检查网络。')}
+	 if(n!==shareGen)return;                                       // 等待中又开了一次，收尾交给后一轮
+	 card.classList.remove('loading');                             // 圈消失，按钮连文字一起回来
+	 /* 失败时按钮保持禁用：没有可用的链接，点亮只会让人点了没反应。 */
+	 if(ok){$('shareGo').disabled=false;$('shareCopy').disabled=false}};
 	/* 两颗按钮各管一件事：「分享给朋友」只唤系统分享面板（面板里是这台手机装了的应用），
 	   不碰剪贴板 —— 弹没弹、发没发出去由系统说了算，这里不替它报「已复制」。
 	   「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。 */
