@@ -6,7 +6,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="小纸条">
-<meta property="og:description" content="一张纸条，折起来是一份心意">
+<meta property="og:description" content="你收到了一张小纸条~">
 <meta property="og:image" content="https://alittlenote.pages.dev/preview.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -576,6 +576,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 <div id="share" role="dialog" aria-modal="true" aria-label="分享"><div class="card"><b class="mark">分享</b>
  <div class="grid">
   <button id="shareGo" title="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg><span>分享给好友</span></button>
+  <button class="ghost" id="shareCopy" title="复制链接"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制链接</span></button>
  </div>
  <button class="ghost" id="shareX">关闭</button></div></div>
 <input type="file" id="fileFull" accept="image/jpeg,image/png" hidden><input type="file" id="fileStk" accept="image/jpeg,image/png" hidden><input type="file" id="fileTex" accept="image/*" hidden><input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2,font/*" hidden><input type="file" id="fileStkTex" accept="image/*" hidden>
@@ -1618,20 +1619,23 @@ async function makeURL(){
 async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
  const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
  document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
-/* 分享：链接生成好了先进剪贴板，再唤起系统分享面板 —— 面板里就是这台手机装了的应用。
-   手机上没有分享面板（或浏览器没给这个接口）就只复制。复制必须在点击手势里发起，不能等 await。 */
-const SHARE_TITLE='小纸条',SHARE_TEXT='一张纸条，折起来是一份心意',SHARE_RETEXT='我回复了你的纸条……';
+/* 分享面板里两颗按钮各管一件事：
+   「分享给朋友」只唤系统分享面板（面板里是这台手机装了的应用），不碰剪贴板 ——
+   面板弹没弹、发没发出去由系统说了算，这里不替它报「已复制」，免得说了假话。
+   「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。
+   复制必须在点击手势里发起，不能等 await。 */
+const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
 function closeShare(){$('share').style.display='none'}
-$('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;
- try{await makeURL();$('shareGo').disabled=false}catch(e){toast('链接生成失败')}};
+$('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;$('shareCopy').disabled=true;
+ try{await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false}catch(e){toast('链接生成失败')}};
 $('shareX').onclick=closeShare;
 $('share').onclick=e=>{if(e.target===$('share'))closeShare()};
+const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
 $('shareGo').onclick=()=>{const u=shareURL;if(!u)return toast('链接还没生成好');
- const copied=putClip(u);
- if(!navigator.share){copied.then(ok=>toast(ok?'链接已复制，粘贴给对方即可':'复制失败，请手动复制'));return}
- navigator.share({title:SHARE_TITLE,text:reply?SHARE_RETEXT:SHARE_TEXT,url:u})
-  .then(()=>{closeShare();toast('链接已复制')})
-  .catch(()=>copied.then(ok=>toast(ok?'链接已复制':'复制失败，请手动复制')))};
+ if(!navigator.share)return toast('这台设备没有系统分享，请用「复制链接」');
+ navigator.share({title:SHARE_TITLE,text:shareWord(),url:u}).then(()=>closeShare()).catch(()=>{})};
+$('shareCopy').onclick=()=>{const u=shareURL;if(!u)return toast('链接还没生成好');
+ putClip(shareWord()+'\n'+u).then(ok=>toast(ok?'链接已复制':'复制失败，请手动复制'))};
 function applyState(j){const d=defaultS(),s=j.s||{};
   S=Object.assign(d,s,{strokes:Object.assign(d.strokes,s.strokes),full:Object.assign(d.full,s.full),texts:Array.isArray(s.texts)?s.texts:d.texts});   // 缺字段的旧链接用默认值补齐
   S.stk=S.stk||{mode:'one',one:null,L:null,R:null,cut:null};
