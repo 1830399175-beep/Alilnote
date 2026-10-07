@@ -1615,10 +1615,19 @@ async function slimState(){
  if(s.stk)for(const k of['one','L','R']){const o=s.stk[k];if(o&&o.u)jobs.push(slimImg(o.u).then(v=>o.u=v))}
  if(s.stk&&s.stk.texU)jobs.push(slimImg(s.stk.texU).then(v=>s.stk.texU=v));
  await Promise.all(jobs);return s}
+/* 分享走短链：纸条数据先交给服务器换一个短码回来（functions/api/n.js），
+   网址里就只剩十几个字符，微信才发得出去。换不到（本地打开、断网、后端没配好）
+   就退回老办法：整份数据塞在 #d= 后面，链接长，但一定能用。 */
+const pageBase=()=>location.protocol==='file:'?location.href.split(/[#?]/)[0]:location.origin+location.pathname;
+async function shortURL(blob){
+ try{const r=await fetch('api/n',{method:'POST',body:blob});
+  if(!r.ok)return null;const j=await r.json();return j&&j.id?pageBase()+'?n='+j.id:null}
+ catch(e){return null}}
 async function makeURL(){
  const s=await slimState(),tex=(texCur&&texCur!==TEXTURE_URL)?await slimImg(texCur):null;   // 自定义纸纹也跟着走，否则对方看到的是默认纸纹
  const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));const z=await pipe(j,CompressionStream);   // 带 r 的链接打开就是回复页
- const u=location.href.split('#')[0]+'#d='+b64(z);history.replaceState(null,'',u);shareURL=u;return u}
+ const blob=b64(z),short=await shortURL(blob),u=short||pageBase()+'#d='+blob;
+ history.replaceState(null,'',u);shareURL=u;return u}
 async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
  const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
  document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
@@ -1655,8 +1664,17 @@ function applyState(j){const d=defaultS(),s=j.s||{};
   if(typeof S.texA!=='number')S.texA=1;      // 老链接没有这一项，按「纹理原样」算
   if(j.tex)setTexture(j.tex);
  stkSig='';sel=null;setLit(S.light);syncSel();syncTool();syncFull();syncTexA();edSync();loadFaces();dirty=true}
-async function loadShared(){const m=location.hash.match(/^#d=(.+)/);if(!m)return;
- try{const j=JSON.parse(new TextDecoder().decode(await pipe(unb64(m[1]),DecompressionStream)));
+/* 带链接打开：短链（?n=）回服务器取数据，老链接（#d=）数据就在网址里。
+   服务器那边刚存完就到别处打开有可能扑空，所以隔一会儿再问两次才认账。 */
+async function loadShared(){
+ const m=location.hash.match(/^#d=(.+)/),id=new URLSearchParams(location.search).get('n');
+ if(!m&&!id)return;
+ let blob=m?m[1]:null;
+ if(!blob)for(let i=0;i<3&&!blob;i++){
+  if(i)await wait(i*1500);
+  try{const r=await fetch('api/n/'+encodeURIComponent(id));if(r.ok)blob=(await r.json()).d}catch(e){}}
+ if(!blob)return toast(id?'这张纸条已过期或不存在':'分享链接无法解析');
+ try{const j=JSON.parse(new TextDecoder().decode(await pipe(unb64(blob),DecompressionStream)));
   applyState(j);fromLink=true;$('repBtn').style.display='';   // 「回复」只给带链接来的人看，首页自己进来没有
   if(j.r){reply=true;lockAll();syncReplyUI()}}                 // 对方回的纸条：他写的全锁上，你只能往上加
  catch(err){toast('分享链接无法解析')}}
@@ -1687,7 +1705,7 @@ if(+(new URLSearchParams(location.search).get('exp'))){
    每次打开随机挑一套挂上；带 ?p=2 就固定用第 2 套，方便比对。
    预设只决定纸片长什么样，编辑页进去照旧从空白模板重开，两边不串。 */
 const HOME_PRESETS=['preset-1.js','preset-2.js','preset-3.js','preset-4.js','preset-5.js','preset-6.js','preset-7.js','preset-8.js'];
-window.__homeP=(function(){if(!HOME_PRESETS.length||location.hash.indexOf('#d=')===0)return Promise.resolve(null);
+window.__homeP=(function(){if(!HOME_PRESETS.length||location.hash.indexOf('#d=')===0||new URLSearchParams(location.search).get('n'))return Promise.resolve(null);
  const q=+(new URLSearchParams(location.search).get('p')),
   i=(q>=1&&q<=HOME_PRESETS.length)?q-1:Math.floor(Math.random()*HOME_PRESETS.length);
  return new Promise(res=>{
