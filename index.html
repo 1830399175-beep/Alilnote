@@ -358,12 +358,13 @@ body.view #tagline{display:flex}
 .dot.r{background:var(--face-r)}
 
 /* ---------- 轻提示 / 弹层 ---------- */
-/* 轻提示：白底。宽度按文字撑开 —— 一行放得下就是一行，放不下才按上限换行。
+/* 轻提示：白底。宽度按文字撑开 —— 一行放得下就是一行。
+   长提示按「一句一行」写，用 \n 断开（pre-line），不让一句话被硬折成两行。
    z-index 比 #share(10) 高，分享框打开时提示要浮在它那层暗背景上面。 */
 #toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translateX(-50%);z-index:11;
   display:none;width:max-content;max-width:min(92vw,560px);padding:10px 18px;border-radius:14px;
   background:#fff;color:var(--ink);border:1px solid var(--hair);text-align:center;
-  font:500 12.5px/1.45 var(--ui);box-shadow:0 16px 40px -16px rgba(16,20,30,.4)}
+  font:500 12.5px/1.45 var(--ui);white-space:pre-line;box-shadow:0 16px 40px -16px rgba(16,20,30,.4)}
 #modal{position:fixed;inset:0;z-index:8;display:none;align-items:center;justify-content:center;
   flex-direction:column;gap:14px;padding:20px;background:rgba(14,18,26,.36);
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -772,8 +773,8 @@ function ufUse(rec,sel){                            // rec:{id,label,buf}
  const g=ufGroup(),o=document.createElement('option');o.value=rec.id;o.textContent=rec.label;
  const old=g.querySelector('[value="'+rec.id+'"]');if(old)old.remove();g.appendChild(o);
  try{const f=new FontFace(fam,rec.buf);
-  f.load().then(()=>{document.fonts.add(f);dirty=true;loadFaces()},()=>{ufDrop(rec.id);toast('这个字体文件读不出来')})}
- catch(e){ufDrop(rec.id);toast('这个字体文件读不出来')}
+  f.load().then(()=>{document.fonts.add(f);dirty=true;loadFaces()},()=>{ufDrop(rec.id);toast('字体文件无法读取')})}
+ catch(e){ufDrop(rec.id);toast('字体文件无法读取')}
  if(sel)$('tFace').value=rec.id}
 ufReq('readonly',st=>st.getAll()).then(rs=>{for(const r of rs||[])ufUse(r,false)}).catch(()=>{});
 $('fontUp').onclick=()=>$('fileFont').click();
@@ -781,7 +782,7 @@ $('fileFont').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)ret
  const r=new FileReader();
  r.onload=()=>{const id='uf'+Date.now().toString(36),label=(f.name.replace(/\.[^.]+$/,'')||'我的字体').slice(0,20),
   rec={id,label,buf:r.result};ufUse(rec,true);ufReq('readwrite',st=>st.put(rec)).catch(()=>{});toast('已导入「'+label+'」')};
- r.onerror=()=>toast('读不出这个文件');r.readAsArrayBuffer(f)};
+ r.onerror=()=>toast('文件无法读取');r.readAsArrayBuffer(f)};
 /* 一行字：直的照旧画；弯的把每个字摆到同一段圆弧上 —— 整行占的圆心角固定，弧长就是这行的宽度，
    所以长行半径大、短行半径小，几行的弯度看着一致。cur>0 向上拱（彩虹），cur<0 向下垂。 */
 function drawLine(x,s,y,cur){
@@ -1227,7 +1228,7 @@ $('undo').onclick=()=>{const k=side(),s=S.strokes[k];if(s.length<=lockN(k))retur
 $('bClr').onclick=()=>{const lf=lockN('f'),lb=lockN('b');if(S.strokes.f.length+S.strokes.b.length<=lf+lb)return;
  S.strokes.f.length=lf;S.strokes.b.length=lb;dirty=true;toast('涂鸦已清空')};   // 清掉的只是自己画的，锁住的留在原地
 $('texUp').onclick=()=>$('fileTex').click();
-$('fileTex').onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=()=>setTexture(r.result);r.readAsDataURL(f)}};
+$('fileTex').onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=()=>{setTexture(r.result);sizeCheck()};r.readAsDataURL(f)}};
 
 $('texDef').onclick=()=>{S.texA=1;syncTexA();setTexture(TEXTURE_URL)};   // 纹理和强度一起回到默认
 /* 纹理强度：滑轨拖到哪，纸面纹理就兑到哪（0 = 素纸） */
@@ -1250,7 +1251,7 @@ function openCrop(src,aspect,cb){const go=u=>{$('cropImg').src=u;cropCb=cb;$('mo
  cropper&&cropper.destroy();cropper=new Cropper($('cropImg'),{aspectRatio:aspect,viewMode:1,autoCropArea:1,background:false})};
  if(typeof src==='string')go(src);else{const r=new FileReader();r.onload=()=>go(r.result);r.readAsDataURL(src)}}
 $('cropNo').onclick=()=>{$('modal').style.display='none';cropper&&cropper.destroy();cropper=null};
-$('cropOk').onclick=()=>{if(!cropper||!cropCb)return;cropCb(cropper.getCroppedCanvas({maxWidth:1600,maxHeight:800}).toDataURL('image/jpeg',.82));$('cropNo').onclick();syncFull();dirty=true};
+$('cropOk').onclick=()=>{if(!cropper||!cropCb)return;cropCb(cropper.getCroppedCanvas({maxWidth:1600,maxHeight:800}).toDataURL('image/jpeg',.82));$('cropNo').onclick();syncFull();dirty=true;sizeCheck()};
 const pickFull=s=>{fullSide=s;$('fileFull').click()};
 $('fullF').onclick=()=>pickFull('f');$('fullB').onclick=()=>pickFull('b');
 $('swF').onclick=()=>pickFull('f');$('swB').onclick=()=>pickFull('b');
@@ -1304,7 +1305,7 @@ function syncStkTex(){const v=Math.round(stkStr()*100);$('stkTexA').value=v;$('s
  $('stkTexUp').textContent=S.stk.texU?'\u91cd\u65b0\u5bfc\u5165':'\u5bfc\u5165\u7eb9\u7406'}
 $('stkTexUp').onclick=()=>$('fileStkTex').click();
 $('fileStkTex').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
- const r=new FileReader();r.onload=()=>setStkTex(r.result);r.readAsDataURL(f)};
+ const r=new FileReader();r.onload=()=>{setStkTex(r.result);sizeCheck()};r.readAsDataURL(f)};
 $('stkTexDef').onclick=()=>{setStkTex(null);S.stk.texA=1;stkSig='';syncStkTex();dirty=true};
 $('stkTexA').oninput=e=>{S.stk.texA=+e.target.value/100;$('stkTexAV').textContent=+e.target.value;stkSig='';syncStkTex();dirty=true};
 function edDraw(){ex.fillStyle='#fff';ex.fillRect(0,0,520,520);const k=S.stk;
@@ -1347,7 +1348,7 @@ $('edClr').onclick=()=>{S.stk[tg()]=null;
  edSync();dirty=true};
 $('edUp').onclick=()=>$('fileStk').click();
 $('fileStk').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*m;c.height=im.height*m;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
- S.stk[tg()]={u:c.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.85),x:CX,y:CZ,s:SW,r:0,n:++stkN};edOpen=true;edSync();dirty=true};im.src=r.result};r.readAsDataURL(f)};
+ S.stk[tg()]={u:c.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.85),x:CX,y:CZ,s:SW,r:0,n:++stkN};edOpen=true;edSync();dirty=true;sizeCheck()};im.src=r.result};r.readAsDataURL(f)};
 
 /* ===== 贴片：真的往场景里加平面网格 =====
    贴图是额外贴在两个大面上的独立贴片（不是印在纸上的图案）：正面是图，背面纯白。
@@ -1604,23 +1605,30 @@ const b64=u8=>{const a=new Uint8Array(u8);let s='';for(let i=0;i<a.length;i+=0x8
  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 async function pipe(data,Stream){const s=new Blob([data]).stream().pipeThrough(new Stream('deflate-raw'));return new Uint8Array(await new Response(s).arrayBuffer())}
-let shareURL='';
+let shareURL='',shareFail='';
 /* 链接瘦身：链接是自己背着全部内容的，图片就占了九成以上。
    出链接前把每张图按最长边 720、webp 有损压一遍 —— 画质有损，但链接能从几兆掉到百 KB 级。
    只动链接里那一份拷贝，编辑页里的原图一个字节都不碰。 */
 const SLIM_MAX=720,SLIM_Q=.62;
+/* 一轮压不到够小就再压一轮（尺寸更小、画质更低），取最小的那一份。
+   尺寸特别大的照片、只能存成 PNG 的透明图，一轮下来往往还有几百 KB，链接照样背不动。 */
+const SLIM_STEPS=[[SLIM_MAX,SLIM_Q],[520,.55],[380,.48],[280,.42]];
 function slimImg(u){return new Promise(res=>{
  if(typeof u!=='string'||u.slice(0,11)!=='data:image/')return res(u);
  const im=new Image();
  im.onload=()=>{try{
-  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;
-  if(u.slice(0,15)==='data:image/webp'&&Math.max(iw,ih)<=SLIM_MAX)return res(u);   // 上一手压过的：链接来回转发也只会压这一次
-  const k=Math.min(1,SLIM_MAX/Math.max(iw,ih)),
-   c=document.createElement('canvas');c.width=Math.max(1,Math.round(iw*k));c.height=Math.max(1,Math.round(ih*k));
-  c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-  let out=c.toDataURL('image/webp',SLIM_Q);
-  if(out.slice(0,15)!=='data:image/webp')out=c.toDataURL('image/png');   // 老浏览器没有 webp：退回 png，透明不丢
-  res(out.length<u.length?out:u)}catch(e){res(u)}};
+  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,long=Math.max(iw,ih)||1;
+  if(u.slice(0,15)==='data:image/webp'&&long<=SLIM_MAX)return res(u);   // 上一手压过的：链接来回转发也只会压这一次
+  let best=u;
+  for(const step of SLIM_STEPS){
+   const k=Math.min(1,step[0]/long),c=document.createElement('canvas');
+   c.width=Math.max(1,Math.round(iw*k));c.height=Math.max(1,Math.round(ih*k));
+   c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+   let out=c.toDataURL('image/webp',step[1]);
+   if(out.slice(0,15)!=='data:image/webp')out=c.toDataURL('image/png');   // 老浏览器没有 webp：退回 png，透明不丢
+   if(out.length<best.length)best=out;
+   if(best.length<100*1024)break}                    // 已经够小，不用再往下压
+  res(best)}catch(e){res(u)}};
  im.onerror=()=>res(u);im.src=u})}
 async function slimState(){
  const s=JSON.parse(JSON.stringify(S)),jobs=[];
@@ -1630,18 +1638,35 @@ async function slimState(){
  if(s.stk&&s.stk.texU)jobs.push(slimImg(s.stk.texU).then(v=>s.stk.texU=v));
  await Promise.all(jobs);return s}
 /* 分享走短链：纸条数据先交给服务器换一个短码回来（functions/api/n.js），
-   网址里就只剩十几个字符，微信才发得出去。换不到（本地打开、断网、后端没配好）
-   就退回老办法：整份数据塞在 #d= 后面，链接长，但一定能用。 */
+   网址里就只剩十几个字符，微信才发得出去。换不到（本地打开、断网、图太多后端存不下）
+   就退回老办法：整份数据塞在 #d= 后面，链接长，但一定能用 —— 换不成的缘故记在 shareFail 里，
+   点分享时照实说，不闷着。 */
 const pageBase=()=>location.protocol==='file:'?location.href.split(/[#?]/)[0]:location.origin+location.pathname;
 async function shortURL(blob){
  try{const r=await fetch('api/n',{method:'POST',body:blob});
-  if(!r.ok)return null;const j=await r.json();return j&&j.id?pageBase()+'?n='+j.id:null}
- catch(e){return null}}
-async function makeURL(){
+  if(r.ok){const j=await r.json();if(j&&j.id)return{url:pageBase()+'?n='+j.id}}
+  else if(r.status===413)return{why:'too-big'}          // 后端不收：这一份超过了它的上限
+  return{why:'server'}}
+ catch(e){return{why:'offline'}}}
+/* 一份要发出去的数据：先缩图，再压，再 base64。服务器就是按这份的字符数决定收不收。 */
+async function shareBlob(){
  const s=await slimState(),tex=(texCur&&texCur!==TEXTURE_URL)?await slimImg(texCur):null;   // 自定义纸纹也跟着走，否则对方看到的是默认纸纹
- const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));const z=await pipe(j,CompressionStream);   // 带 r 的链接打开就是回复页
- const blob=b64(z),short=await shortURL(blob),u=short||pageBase()+'#d='+blob;
- shareURL=u;return u}
+ const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));   // 带 r 的链接打开就是回复页
+ return b64(await pipe(j,CompressionStream))}
+async function makeURL(){
+ const blob=await shareBlob(),r=await shortURL(blob),u=r.url||pageBase()+'#d='+blob;
+ shareFail=r.why||'';shareURL=u;return u}
+/* 分享体积：服务器一条最多 SHARE_CAP 个字符，收不下就只能给长链接。
+   图片是唯一能把体积撑起来的东西，所以每加一张就在后台量一遍 ——
+   刚越过线的那一次提醒，之后反复加图不再重复唠叨。 */
+const SHARE_CAP=512*1024,SHARE_WARN=430*1024;
+let shareLevel=0,sizeT=0;
+function sizeCheck(){clearTimeout(sizeT);sizeT=setTimeout(async()=>{
+ try{const n=(await shareBlob()).length,lv=n>SHARE_CAP?2:n>SHARE_WARN?1:0;
+  if(lv>shareLevel)toast(lv>1?'已添加的图片过多，短链生成不了。\n只能给长链接，微信等聊天工具可能发不出去。'
+                             :'已添加的图片偏大。\n分享链接会变长，微信等聊天工具可能发不出去。');
+  shareLevel=lv}
+ catch(e){}},600)}
 async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
  const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
  document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
@@ -1657,16 +1682,21 @@ const LINK_MAX=2000;
 function closeShare(){$('share').style.display='none'}
 $('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;$('shareCopy').disabled=true;
  try{const u=await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
-  if(u.length>LINK_MAX)toast('链接有 '+u.length+' 个字符，微信等聊天工具可能发不出去、或发出去被截断，对方打开会看不到你的纸条')}
- catch(e){toast('链接生成失败')}};
+  let why='';
+  if(shareFail==='too-big')why='已添加的图片过多，短链生成不了。';
+  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，短链生成不了。';
+  else if(shareFail)why='短链生成不了。';
+  if(why)toast(why+'\n只能给长链接，微信等聊天工具可能发不出去。');
+  else if(u.length>LINK_MAX)toast('链接偏长（'+u.length+' 个字符）。\n微信等聊天工具可能发不出去，对方打开会看不到内容。')}
+ catch(e){toast('链接生成失败。\n请检查网络后重试。')}};
 $('shareX').onclick=closeShare;
 $('share').onclick=e=>{if(e.target===$('share'))closeShare()};
 const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
-$('shareGo').onclick=()=>{const u=shareURL;if(!u)return toast('链接还没生成好');
- if(!navigator.share)return toast('这台设备没有系统分享，请用「复制链接」');
+$('shareGo').onclick=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
+ if(!navigator.share)return toast('这台设备不支持系统分享，请用「复制链接」');
  navigator.share({title:SHARE_TITLE,text:shareWord(),url:u}).then(()=>closeShare()).catch(()=>{})};
-$('shareCopy').onclick=()=>{const u=shareURL;if(!u)return toast('链接还没生成好');
- putClip(shareWord()+'\n'+u).then(ok=>toast(ok?'链接已复制':'复制失败，请手动复制'))};
+$('shareCopy').onclick=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
+ putClip(shareWord()+'\n'+u).then(ok=>toast(ok?'链接已复制':'复制失败，请再点一次'))};
 function applyState(j){const d=defaultS(),s=j.s||{};
   S=Object.assign(d,s,{strokes:Object.assign(d.strokes,s.strokes),full:Object.assign(d.full,s.full),texts:Array.isArray(s.texts)?s.texts:d.texts});   // 缺字段的旧链接用默认值补齐
   S.stk=S.stk||{mode:'one',one:null,L:null,R:null,cut:null};
@@ -1687,7 +1717,7 @@ async function loadShared(){
  if(!blob)for(let i=0;i<3&&!blob;i++){
   if(i)await wait(i*1500);
   try{const r=await fetch('api/n/'+encodeURIComponent(id));if(r.ok)blob=(await r.json()).d}catch(e){}}
- if(!blob)return toast(id?'这张纸条已过期或不存在':'分享链接无法解析');
+ if(!blob)return toast(id?'这张纸条已过期或已被删除':'分享链接无法解析');
  try{const j=JSON.parse(new TextDecoder().decode(await pipe(unb64(blob),DecompressionStream)));
   applyState(j);fromLink=true;$('repBtn').style.display='';$('homeBtn').style.display='flex';   // 「回复」和「首页」都只给带链接来的人看，首页自己进来没有
   if(j.r){reply=true;lockAll();syncReplyUI()}}                 // 对方回的纸条：他写的全锁上，你只能往上加
@@ -1896,8 +1926,8 @@ document.querySelectorAll('#export button[data-x]').forEach(b=>b.onclick=async()
   if(k==='png-f')await facePNG(1);
   else if(k==='png-b')await facePNG(-1);
   else if(k==='mp4')await recVideo();
-  else if(k==='gif'){toast('生成 GIF 中…');await recGif()}
- }catch(err){alphaOff();toast('导出失败：'+err.message)}
+  else if(k==='gif'){toast('正在生成 GIF…');await recGif()}
+ }catch(err){alphaOff();toast('导出失败。\n请稍后重试，或换一种格式。')}
  frozen=false;busy=false;exporting=false;dirty=true;setP(P0)})
 
 /* ===== 通用：Esc 关弹层，点空白处收起导出菜单 ===== */
