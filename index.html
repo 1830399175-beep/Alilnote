@@ -974,12 +974,15 @@ function placeTags(){
 function setP(p,zoom){P=p;$('fold').value=p;$('foldV').textContent=Math.round(p);updateGeom(p);
  if(zoom){const d=viewD,v=cam.position.clone().sub(ctl.target);v.setLength(d);cam.position.copy(ctl.target).add(v)}}   // 视距固定：展开/合上一样大
 function anim(to,ms,zoom){return new Promise(r=>{const from=P,t0=performance.now();(function s(){const t=Math.min(1,(performance.now()-t0)/ms);setP(from+(to-from)*ease(t),zoom);t<1?requestAnimationFrame(s):r()})()})}
+/* 提示条上这两颗按钮同进同出：收起动画一启动就一起藏，动画落定再一起现 ——
+   中间那 2.6 秒里谁也不许单独在场。「回复」只在带链接进来时才有，
+   其余场合它 display 仍是 none，整个不占位，首页的排布一点不受影响。 */
+function hintBtns(on){for(const b of[$('repBtn'),$('mkBtn')]){b.style.visibility=on?'visible':'hidden';b.style.opacity=on?'1':'0'}}
 async function openPaper(){if(busy)return;busy=true;const to=opened?100:0;   // 点一下展开，再点一下合上
- $('hintTxt').textContent='';$('mkBtn').style.visibility='hidden';
+ $('hintTxt').textContent='';hintBtns(0);
  await anim(to,2600,true);opened=!opened;busy=false;
  $('hintTxt').textContent=opened?'点击合上':'点击展开';
- $('mkBtn').style.visibility=opened?'visible':'hidden';$('mkBtn').style.opacity=opened?'1':'0';
- $('repBtn').style.visibility=opened?'visible':'hidden';$('repBtn').style.opacity=opened?'1':'0';
+ hintBtns(opened);
  layoutTags()}   // 展开和合上纸的大小差一倍，贴边的文字要跟着挪
 /* 归零：分享链接是给你看的那一份，进制作页时丢掉，从空白模板重新开始 */
 function resetPaper(){S=defaultS();sel=null;FULLSRC.f=FULLSRC.b=null;
