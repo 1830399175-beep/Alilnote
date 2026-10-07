@@ -1656,16 +1656,15 @@ async function shareBlob(){
 async function makeURL(){
  const blob=await shareBlob(),r=await shortURL(blob),u=r.url||pageBase()+'#d='+blob;
  shareFail=r.why||'';shareURL=u;return u}
-/* 分享体积：服务器一条最多 SHARE_CAP 个字符，收不下就只能给长链接。
+/* 分享体积：服务器一条最多 SHARE_CAP 个字符，超了就只能给长链接。
    图片是唯一能把体积撑起来的东西，所以每加一张就在后台量一遍 ——
-   刚越过线的那一次提醒，之后反复加图不再重复唠叨。 */
-const SHARE_CAP=512*1024,SHARE_WARN=430*1024;
-let shareLevel=0,sizeT=0;
+   只有真过载才提醒，且只提醒那一次，之后反复加图不再重复唠叨。 */
+const SHARE_CAP=512*1024;
+let shareFull=false,sizeT=0;
 function sizeCheck(){clearTimeout(sizeT);sizeT=setTimeout(async()=>{
- try{const n=(await shareBlob()).length,lv=n>SHARE_CAP?2:n>SHARE_WARN?1:0;
-  if(lv>shareLevel)toast(lv>1?'已添加的图片过多，短链生成不了。\n只能给长链接，微信等聊天工具可能发不出去。'
-                             :'已添加的图片偏大。\n分享链接会变长，微信等聊天工具可能发不出去。');
-  shareLevel=lv}
+ try{const over=(await shareBlob()).length>SHARE_CAP;
+  if(over&&!shareFull)toast('图片过载，仅可分享长链接。');
+  shareFull=over}
  catch(e){}},600)}
 async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
  const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
@@ -1676,19 +1675,15 @@ async function putClip(u){try{await navigator.clipboard.writeText(u);return true
    「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。
    复制必须在点击手势里发起，不能等 await。 */
 const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
-/* 链接长度警戒线：只写字的纸条几百个字符，一旦贴了图就上万 ——
-   微信这类聊天工具的输入框塞不下这么长的链接，发不出去，或者发出去被截断。 */
-const LINK_MAX=2000;
 function closeShare(){$('share').style.display='none'}
 $('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;$('shareCopy').disabled=true;
  try{const u=await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
   let why='';
-  if(shareFail==='too-big')why='已添加的图片过多，短链生成不了。';
-  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，短链生成不了。';
-  else if(shareFail)why='短链生成不了。';
-  if(why)toast(why+'\n只能给长链接，微信等聊天工具可能发不出去。');
-  else if(u.length>LINK_MAX)toast('链接偏长（'+u.length+' 个字符）。\n微信等聊天工具可能发不出去，对方打开会看不到内容。')}
- catch(e){toast('链接生成失败。\n请检查网络后重试。')}};
+  if(shareFail==='too-big')why='图片过多，链接偏长可能发不出去。';
+  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，链接偏长可能发不出去。';
+  else if(shareFail)why='短链生成失败，链接偏长可能发不出去。';
+  if(why)toast(why)}
+ catch(e){toast('链接生成失败，请检查网络。')}};
 $('shareX').onclick=closeShare;
 $('share').onclick=e=>{if(e.target===$('share'))closeShare()};
 const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
@@ -1927,7 +1922,7 @@ document.querySelectorAll('#export button[data-x]').forEach(b=>b.onclick=async()
   else if(k==='png-b')await facePNG(-1);
   else if(k==='mp4')await recVideo();
   else if(k==='gif'){toast('正在生成 GIF…');await recGif()}
- }catch(err){alphaOff();toast('导出失败。\n请稍后重试，或换一种格式。')}
+ }catch(err){alphaOff();toast('导出失败，请重试或换格式。')}
  frozen=false;busy=false;exporting=false;dirty=true;setP(P0)})
 
 /* ===== 通用：Esc 关弹层，点空白处收起导出菜单 ===== */
