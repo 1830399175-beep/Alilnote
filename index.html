@@ -275,6 +275,16 @@ input.valEdit:focus{border-color:var(--ink3);box-shadow:0 0 0 3px rgba(26,34,51,
   stroke-linecap:round;stroke-linejoin:round;display:block}
 #top button:hover{background:rgba(20,24,33,.06);color:var(--ink)}
 #top button:active{background:rgba(20,24,33,.14);color:var(--ink)}
+/* 分享页左上角的「首页」：从链接进来的页面才出现，点一下回到干净首页（网址里的分享参数一并丢掉）。
+   首页自己进来时它是 display:none，连占位都没有，首页的排布一点不受影响。 */
+#homeBtn{position:fixed;left:14px;top:calc(12px + env(safe-area-inset-top));z-index:6;
+  align-items:center;justify-content:center;width:36px;height:36px;padding:0;
+  border-radius:999px;background:transparent;border-color:transparent;color:var(--ink2)}
+#homeBtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+#homeBtn:hover{background:rgba(20,24,33,.06);color:var(--ink)}
+#homeBtn:active{background:rgba(20,24,33,.14);color:var(--ink)}
+body.make #homeBtn{left:10px;top:calc(5px + env(safe-area-inset-top))}   /* 回复页顶栏里，跟右侧那颗对称 */
 /* 导出弹窗：跟分享同款 —— 中间一块毛玻璃卡，底下压着半透明暗底 */
 #export{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -560,6 +570,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 </div>
 
 <div class="bar" id="slider"><span class="seg" id="viewBar"><button id="viewF">正面</button><button id="viewB" class="ghost">反面</button></span><span class="lb" id="lbOpen">展开</span><input type="range" id="fold" min="0" max="100" value="100"><span class="lb">折叠 <b id="foldV">100</b>%</span></div>
+<button id="homeBtn" title="首页" aria-label="首页" style="display:none"><svg viewBox="0 0 24 24"><path d="M4.2 10.7 12 4.3l7.8 6.4"/><path d="M6.1 10.5v8.1a1.6 1.6 0 0 0 1.6 1.6h8.6a1.6 1.6 0 0 0 1.6-1.6v-8.1"/></svg></button>
 <div class="bar" id="top"><button id="saveBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24"><path d="M12 4v10.6"/><path d="M8.3 11 12 14.7 15.7 11"/><path d="M5.6 17.8v1.2A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-1.2"/></svg></button><button class="ghost" id="shareBtn" title="分享" aria-label="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg></button></div>
 <div id="export" role="dialog" aria-modal="true" aria-label="导出"><div class="card"><b class="mark">导出</b>
  <div class="list">
@@ -1009,6 +1020,9 @@ function enterMake(){reply=false;grp='full';            // 这条是写全新的
  anim(P,1,false);applyView();dirty=true;syncReplyUI();
  placeViewBar()}                                   // 滑轨这时才显形，正面/反面要重新量一次位置
 $('mkBtn').onclick=enterMake;$('repBtn').onclick=enterReply;$('newBtn').onclick=enterMake;
+/* 首页：把网址里的分享参数（?n= / #d=）整个丢掉再重进一次，落到的就是干净首页 ——
+   随机样式照旧，而且此后刷新还是干净首页。 */
+$('homeBtn').onclick=()=>{const u=pageBase();if(u===location.href)location.reload();else location.href=u};
 
 /* ===== 拾取：射线→正反面画布坐标 ===== */
 const ray=new THREE.Raycaster();
@@ -1627,7 +1641,7 @@ async function makeURL(){
  const s=await slimState(),tex=(texCur&&texCur!==TEXTURE_URL)?await slimImg(texCur):null;   // 自定义纸纹也跟着走，否则对方看到的是默认纸纹
  const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));const z=await pipe(j,CompressionStream);   // 带 r 的链接打开就是回复页
  const blob=b64(z),short=await shortURL(blob),u=short||pageBase()+'#d='+blob;
- history.replaceState(null,'',u);shareURL=u;return u}
+ shareURL=u;return u}
 async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
  const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
  document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
@@ -1675,7 +1689,7 @@ async function loadShared(){
   try{const r=await fetch('api/n/'+encodeURIComponent(id));if(r.ok)blob=(await r.json()).d}catch(e){}}
  if(!blob)return toast(id?'这张纸条已过期或不存在':'分享链接无法解析');
  try{const j=JSON.parse(new TextDecoder().decode(await pipe(unb64(blob),DecompressionStream)));
-  applyState(j);fromLink=true;$('repBtn').style.display='';   // 「回复」只给带链接来的人看，首页自己进来没有
+  applyState(j);fromLink=true;$('repBtn').style.display='';$('homeBtn').style.display='flex';   // 「回复」和「首页」都只给带链接来的人看，首页自己进来没有
   if(j.r){reply=true;lockAll();syncReplyUI()}}                 // 对方回的纸条：他写的全锁上，你只能往上加
  catch(err){toast('分享链接无法解析')}}
 
