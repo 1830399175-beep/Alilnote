@@ -4,6 +4,9 @@
 <title>小纸条</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" href="icon-180.png">
+<!--@web-only--><!-- 以下都是联网资源：社交卡片元信息、Google Fonts、cropper 样式表。
+     小红书版纯本地、无外链，构建时整段删除；那边改用包内 woff2 字体，
+     cropper 样式表由构建脚本内联进 <style>。 -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="小纸条">
 <meta property="og:description" content="你收到了一张小纸条~">
@@ -13,6 +16,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500;700&family=ZCOOL+XiaoWei&family=Long+Cang&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<!--@end-->
 <style>
 /* 本地字体：和页面同目录的 ttf，不走 CDN，断网也能用 */
 @font-face{font-family:Angelica;src:url('angelica.ttf') format('truetype');font-display:swap}
@@ -51,9 +55,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--stage);font:13px
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;overscroll-behavior:none}
 /* 例外：输入框里该选就选，长按该弹粘贴就弹 */
 input,textarea,select{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
-#gl{position:fixed;inset:0;display:block;touch-action:none}
+#gl{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;display:block;touch-action:none}
 button,select,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--solid);outline-offset:2px}
+
+/* 焦点环基线：老内核（Chrome 61）不认 :focus-visible，改用 :focus。
+   JS 探测到支持时给 html 加 .fv，下面两条随即失效，现代端行为不变。 */
+html:not(.fv) :focus{outline:2px solid var(--solid);outline-offset:2px}
+html:not(.fv) input[type=range]:focus{outline:2px solid var(--solid);outline-offset:3px;border-radius:999px}
 
 /* ---------- 控件 ---------- */
 button{
@@ -250,7 +259,7 @@ body.make #head{display:flex}
 .sws .pickc{position:relative;width:20px;height:20px;border-radius:50%;flex:none;overflow:hidden;
   background:conic-gradient(#e0574a,#e0a24a,#7fbf6a,#4aa5e0,#9a6ae0,#e0574a);
   box-shadow:inset 0 0 0 2px #fff,0 0 0 1px var(--hair2)}
-.sws .pickc input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+.sws .pickc input[type=color]{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;width:100%;height:100%;opacity:0;
   border:0;padding:0;cursor:pointer;border-radius:0}
 #panel .fl .fup{margin-left:auto;font:400 11.5px/1.2 var(--ui);color:var(--ink3);background:none;border:0;padding:2px 0;cursor:pointer}
 #panel .fl .fup:hover{color:var(--ink)}
@@ -286,9 +295,9 @@ input.valEdit:focus{border-color:var(--ink3);box-shadow:0 0 0 3px rgba(26,34,51,
 #homeBtn:active{background:rgba(20,24,33,.14);color:var(--ink)}
 body.make #homeBtn{left:10px;top:calc(5px + env(safe-area-inset-top))}   /* 回复页顶栏里，跟右侧那颗对称 */
 /* 导出弹窗：跟分享同款 —— 中间一块毛玻璃卡，底下压着半透明暗底 */
-#export{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
+#export{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-#export .card{width:min(92vw,336px);display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r-lg);
+#export .card{width:92vw;max-width:336px;width:min(92vw,336px);display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r-lg);
   background:var(--glass);border:1px solid rgba(20,24,33,.075);box-shadow:var(--sh),var(--sh-in);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   animation:rise .28s cubic-bezier(.22,.61,.36,1) both}
@@ -342,7 +351,7 @@ body.view #tagline{display:flex}
 #ed .row .mark{font:700 11.5px/1 var(--dp);letter-spacing:.16em;color:var(--ink)}
 #edTabs button{display:inline-flex;align-items:center;gap:7px}
 #ed label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
-#ed canvas{width:100%;aspect-ratio:1;display:block;background:#fff;
+#ed canvas{width:100%;height:auto;aspect-ratio:1;display:block;background:#fff;
   border:1px solid var(--hair);border-radius:10px;touch-action:none;cursor:grab}
 /* 笔在手里的时候，这块画布是拿来画的，不是拿来拖贴图的 —— 光标跟着换 */
 #ed canvas.draw{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M3.6 20.4l1.1-4.2L15 5.9l3.1 3.1L7.8 19.3z' fill='%23fff' stroke='%23141a22' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M14.4 3.9l2.1-2.1 3.1 3.1-2.1 2.1z' fill='%23141a22'/%3E%3C/svg%3E") 4 20,crosshair}
@@ -362,10 +371,10 @@ body.view #tagline{display:flex}
    长提示按「一句一行」写，用 \n 断开（pre-line），不让一句话被硬折成两行。
    z-index 比 #share(10) 高，分享框打开时提示要浮在它那层暗背景上面。 */
 #toast{position:fixed;left:50%;top:calc(18px + env(safe-area-inset-top));transform:translateX(-50%);z-index:11;
-  display:none;width:max-content;max-width:min(92vw,560px);padding:10px 18px;border-radius:14px;
+  display:none;width:max-content;max-width:92vw;max-width:min(92vw,560px);padding:10px 18px;border-radius:14px;
   background:#fff;color:var(--ink);border:1px solid var(--hair);text-align:center;
   font:500 12.5px/1.45 var(--ui);white-space:pre-line;box-shadow:0 16px 40px -16px rgba(16,20,30,.4)}
-#modal{position:fixed;inset:0;z-index:8;display:none;align-items:center;justify-content:center;
+#modal{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:8;display:none;align-items:center;justify-content:center;
   flex-direction:column;gap:14px;padding:20px;background:rgba(14,18,26,.36);
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 #modal .box{width:auto;height:auto;max-width:92vw;max-height:74vh;line-height:0;
@@ -375,19 +384,71 @@ body.view #tagline{display:flex}
 #modal .row{display:flex;gap:10px}
 
 /* ---------- 分享 ---------- */
-#share{position:fixed;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
+#share{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-#share .card{width:min(92vw,336px);display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r-lg);
+#share .card{width:92vw;max-width:336px;width:min(92vw,336px);display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r-lg);
   background:var(--glass);border:1px solid rgba(20,24,33,.075);box-shadow:var(--sh),var(--sh-in);
   -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
   animation:rise .28s cubic-bezier(.22,.61,.36,1) both}
 #share .card>.mark{text-align:center;padding-bottom:13px;border-bottom:1px solid var(--hair)}
-#share .grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:4px}
+  #share .grid{display:grid;grid-template-columns:1fr;grid-gap:6px;gap:6px;margin-top:4px}
 #share .grid button{display:flex;flex-direction:row;justify-content:center;align-items:center;gap:9px;
   padding:13px 2px;border-radius:var(--r-md);font:500 13px/1 var(--ui);white-space:normal}
 #share .grid svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.6;
   stroke-linecap:round;stroke-linejoin:round}
 #share #shareX{padding:9px;border-color:transparent;color:var(--ink3)}
+/* 小红书版那两处提示（分享框的 #wxHint、导出面板的 #expHint）：容器禁外链、也禁剪贴板，
+   所以它们只能是可长按选中的纯文本。pre-line 让 JS 写进去的 \n 真断行（文案自己断好了）；
+   word-break 只当兜底 —— 窄到 320px 都还放得下，真到极限也宁可断字，不撑破卡片。 */
+#wxHint,#expHint{font:400 11px/1.6 var(--ui);color:var(--ink3);text-align:center;margin:0;
+  white-space:pre-line;
+  -webkit-user-select:text;user-select:text;word-break:break-all}
+
+/* ---------- 开屏提示与它的入口 ----------
+   「怎么用」只在第一次进制作页时自己弹一次，之后靠左上角那颗问号再叫出来。
+   摆位跟着导轨走：导轨在左边（桌面、手机横屏）时，它落在左栏右侧那块水平区域里、贴着区域左缘，
+   并提到顶栏这条空带上 —— 属性卡 #panel 从左边 68px、顶边 60px 起铺，
+   停在导出/分享那条 54px 高度带上会压住卡片左上角。
+   导轨收到底部（手机竖屏）时左下角整个空着，再回到与右上角导出/分享同高、左右对称。 */
+#guideBtn{position:fixed;left:56px;top:calc(5px + env(safe-area-inset-top));z-index:6;
+  display:none;align-items:center;justify-content:center;width:36px;height:36px;padding:0;
+  border-radius:999px;background:transparent;border-color:transparent;color:var(--ink2)}
+#guideBtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;display:block}
+#guideBtn:hover{background:rgba(20,24,33,.06);color:var(--ink)}
+#guideBtn:active{background:rgba(20,24,33,.14);color:var(--ink)}
+body.make #guideBtn{display:flex}
+/* 跟导出/分享同款：中间一块毛玻璃卡，底下压着半透明暗底 */
+#guide{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#guide .card{width:92vw;max-width:336px;width:min(92vw,336px);display:flex;flex-direction:column;gap:10px;padding:20px;border-radius:var(--r-lg);
+  background:var(--glass);border:1px solid rgba(20,24,33,.075);box-shadow:var(--sh),var(--sh-in);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  animation:rise .28s cubic-bezier(.22,.61,.36,1) both}
+#guide .card>.mark{text-align:center;padding-bottom:13px;border-bottom:1px solid var(--hair)}
+#guide p{margin:0;font:400 13px/1.95 var(--ui);color:var(--ink2);text-align:center}
+#guide #guideX{padding:9px;border-color:transparent;color:var(--ink3)}
+
+/* ---------- 右上角的「完成」 ----------
+   有任何未落定的改动时，它替掉导出与分享两颗按钮；点掉即恢复。 */
+#top #doneBtn{width:auto;min-width:62px;padding:0 14px;font:500 13px/1 var(--ui);
+  background:var(--ink);border-color:transparent;color:#fff}
+#top #doneBtn:hover{background:var(--ink);color:#fff}
+#top #doneBtn:active{background:var(--ink);color:#fff}
+
+/* ---------- 发帖进度 ----------
+   折叠动画要实时录 7 秒，之后还有写临时文件与发布，全程盖一层说明在做什么。 */
+#postProg{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:12;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:13px;
+  background:rgba(14,18,26,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#postProg i{display:block;width:52vw;max-width:200px;width:min(200px,52vw);height:3px;border-radius:999px;
+  background-color:rgba(255,255,255,.3);
+  background-image:linear-gradient(#fff,#fff);background-repeat:no-repeat;
+  background-size:0% 100%;transition:background-size .2s linear}
+/* 编码完、等发布结果的那一段没有确定进度，改成整条呼吸 */
+#postProg.indet i{background-size:100% 100%;animation:ppPulse 1.05s ease-in-out infinite}
+#postProg span{font:400 12.5px/1 var(--ui);color:#fff}
+@keyframes ppPulse{0%,100%{opacity:1}50%{opacity:.32}}
 
 /* ---------- 模式 ---------- */
 body.view #ed,body.view #panel,body.view #rail,body.view #slider,body.view #hud,body.view #top,body.view #viewBar{display:none}
@@ -424,7 +485,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
   /* 属性卡：贴着屏幕下边弹出，上面留给底部胶囊和折叠条 */
   #panel{top:auto;left:8px;right:8px;width:auto;
     bottom:calc(74px + env(safe-area-inset-bottom));
-    max-height:min(42vh,360px);max-height:min(42dvh,360px);
+    max-height:360px;max-height:min(42vh,360px);max-height:min(42dvh,360px);
     border-radius:var(--r-lg);--ppx:14px}
   #panel .hd{padding:9px var(--ppx)}
   /* 折叠条：贴着底部胶囊的上沿，面板开合都不动 */
@@ -436,6 +497,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
     box-shadow:var(--sh),var(--sh-in);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
   #ed canvas{width:80%;margin:0 auto}   /* 截图画布缩到卡片里，横向不撑破 */
   #top{right:8px}
+  #guideBtn{left:8px;top:calc(54px + env(safe-area-inset-top))}
   #hud{display:none}
   .seg button{padding:5px 10px}
 }
@@ -444,12 +506,13 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
     width:56px;height:auto;flex-direction:column;gap:3px;padding:12px 0;
     border-radius:0;border-width:0 1px 0 0;box-shadow:var(--sh-in)}
   #rail button{width:40px;height:40px;border-radius:12px}
+  #guideBtn{left:56px;top:calc(5px + env(safe-area-inset-top))}
   #panel{top:calc(46px + env(safe-area-inset-top));bottom:calc(70px + env(safe-area-inset-bottom));
     left:64px;right:auto;width:262px;max-height:none;--ppx:13px}
   #slider{left:64px;right:8px;width:auto;transform:none;bottom:calc(20px + env(safe-area-inset-bottom))}
 }
 /* 开场遮罩：预设、图、字体没落位前先挡住，进度按真实完成数走 */
-#boot{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+#boot{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
   background:var(--stage);transition:opacity .45s ease}
 #boot.off{opacity:0;pointer-events:none}
 #boot b{font:400 12px/1 var(--ui);color:var(--ink3);font-variant-numeric:tabular-nums;letter-spacing:.08em}
@@ -462,6 +525,63 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
  #ed input[type=text],#ed select,#ed textarea,
  input[type=text],textarea,select,input.valEdit{font-size:16px}
 }
+  /* ===== Chrome 61 基线：Flex 间距 =====
+     目标内核（Android 8.1 出场 WebView）在 flex 容器里不认 gap —— 它认 Grid 的 gap，
+     但 flex 的 gap 要到 Chrome 84。所以基线改用「相邻兄弟的 margin」把子项顶开，
+     每个值都跟上面某一条 gap 一一对应。
+     脚本实测确认内核真支持 flex gap 时给 html 挂 .flexgap，下面这一整段随即失效，
+     间距仍旧由上面那些 gap 说了算 —— 现代端一个像素都不变。
+     选「相邻兄弟」而不是「所有子项 margin + 容器负 margin」：子项被 display:none 时，
+     前者不会为它留下空档，后者会。 */
+  html:not(.flexgap) .bar > * + *{margin-left:8px}
+  html:not(.flexgap) .seg > * + *{margin-left:2px}
+  html:not(.flexgap) #top > * + *{margin-left:2px}
+  html:not(.flexgap) #slider > * + *{margin-left:12px}
+  /* 这两条是 .bar 里改成竖排的，得先把 .bar 那条横排 margin 清掉 */
+  html:not(.flexgap) #hint > * + *{margin-left:0;margin-top:20px}
+  html:not(.flexgap) #hud > * + *{margin-left:0;margin-top:10px}
+  html:not(.flexgap) #hud figure > * + *{margin-top:6px}
+  html:not(.flexgap) #hintRow > * + *{margin-left:10px}
+  html:not(.flexgap) #rail > * + *{margin-left:0;margin-top:3px}
+  /* 导轨上那条竖分隔线自带 margin:0 5px，别被上面那条通用规则改掉 */
+  html:not(.flexgap) #rail > .railSep{margin:0 5px}
+  html:not(.flexgap) #grp > * + *{margin-left:0;margin-top:9px}
+  html:not(.flexgap) #panel .sec > * + *{margin-left:0;margin-top:9px}
+  html:not(.flexgap) #panel .sub > * + *{margin-left:0;margin-top:9px}
+  html:not(.flexgap) #panel .block > * + *{margin-left:0;margin-top:10px}
+  html:not(.flexgap) #panel .bh > * + *{margin-left:8px}
+  html:not(.flexgap) #panel .fld > * + *,
+  html:not(.flexgap) #ed .fld > * + *{margin-left:0;margin-top:7px}
+  html:not(.flexgap) #panel .fl > * + *,
+  html:not(.flexgap) #ed .fl > * + *{margin-left:8px}
+  html:not(.flexgap) #panel .acts > * + *,
+  html:not(.flexgap) #ed .acts > * + *{margin-left:6px}
+  html:not(.flexgap) .drop > * + *{margin-left:0;margin-top:6px}
+  html:not(.flexgap) .pick > * + *{margin-left:0;margin-top:9px}
+  html:not(.flexgap) .sws > * + *{margin-left:7px}
+  html:not(.flexgap) #export .card > * + *{margin-left:0;margin-top:10px}
+  html:not(.flexgap) #guide .card > * + *{margin-left:0;margin-top:10px}
+  html:not(.flexgap) #export .list > * + *{margin-left:0;margin-top:6px}
+  html:not(.flexgap) #export .chk > * + *{margin-left:8px}
+  html:not(.flexgap) #ed > * + *{margin-left:0;margin-top:9px}
+  html:not(.flexgap) #edTabs button > * + *{margin-left:7px}
+  html:not(.flexgap) #ed label > * + *{margin-left:6px}
+  html:not(.flexgap) #modal > * + *{margin-left:0;margin-top:14px}
+  html:not(.flexgap) #modal .row > * + *{margin-left:10px}
+  html:not(.flexgap) #share .card > * + *{margin-left:0;margin-top:10px}
+  /* #wxHint 平时带着 hidden，邻居不该为它留一份间距 */
+  html:not(.flexgap) #share .card > [hidden] + *{margin-top:0}
+  html:not(.flexgap) #share .grid button > * + *{margin-left:9px}
+  html:not(.flexgap) #postProg > * + *{margin-left:0;margin-top:13px}
+  html:not(.flexgap) #boot > * + *{margin-left:0;margin-top:18px}
+  @media(max-width:820px){
+    /* 手机：导轨整条转成横排，折叠条换了个间距值 */
+    html:not(.flexgap) #rail > * + *{margin-top:0;margin-left:2px}
+    html:not(.flexgap) #slider > * + *{margin-left:8px}}
+  @media(max-width:820px) and (max-height:480px) and (orientation:landscape){
+    /* 手机横屏：导轨又竖回去 */
+    html:not(.flexgap) #rail > * + *{margin-left:0;margin-top:3px}}
+
 </style></head><body class="view">
 <div id="boot"><b id="bootNum">0</b><span><i id="bootBar"></i></span></div>
 <canvas id="gl"></canvas>
@@ -572,17 +692,20 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 
 <div class="bar" id="slider"><span class="seg" id="viewBar"><button id="viewF">正面</button><button id="viewB" class="ghost">反面</button></span><span class="lb" id="lbOpen">展开</span><input type="range" id="fold" min="0" max="100" value="100"><span class="lb">折叠 <b id="foldV">100</b>%</span></div>
 <button id="homeBtn" title="首页" aria-label="首页" style="display:none"><svg viewBox="0 0 24 24"><path d="M4.2 10.7 12 4.3l7.8 6.4"/><path d="M6.1 10.5v8.1a1.6 1.6 0 0 0 1.6 1.6h8.6a1.6 1.6 0 0 0 1.6-1.6v-8.1"/></svg></button>
-<div class="bar" id="top"><button id="saveBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24"><path d="M12 4v10.6"/><path d="M8.3 11 12 14.7 15.7 11"/><path d="M5.6 17.8v1.2A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-1.2"/></svg></button><button class="ghost" id="shareBtn" title="分享" aria-label="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg></button></div>
+<button id="guideBtn" title="怎么用" aria-label="怎么用"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M9.5 9.42a2.58 2.58 0 0 1 5.014.86c0 1.72-2.58 2.58-2.58 2.58"/><path d="M12 16.3h.01"/></svg></button>
+<div class="bar" id="top"><button id="saveBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24"><path d="M12 4v10.6"/><path d="M8.3 11 12 14.7 15.7 11"/><path d="M5.6 17.8v1.2A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-1.2"/></svg></button><button class="ghost" id="shareBtn" title="分享" aria-label="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg></button><button id="doneBtn" style="display:none">完成</button></div>
 <div id="export" role="dialog" aria-modal="true" aria-label="导出"><div class="card"><b class="mark">导出</b>
  <div class="list">
   <button class="ghost" data-x="png-f">正面 PNG</button>
   <button class="ghost" data-x="png-b">反面 PNG</button>
   <button class="ghost" data-x="mp4">折叠动画 MP4</button>
-  <button class="ghost" data-x="gif">折叠动画 GIF</button>
+  <!--@web-only--><button class="ghost" data-x="gif">折叠动画 GIF</button><!--@end-->
  </div>
- <label class="chk"><input type="checkbox" id="transBg">透明背景<em>（仅 PNG 与 GIF 有效，视频一律白底）</em></label>
+ <p id="expHint" hidden></p>
+ <label class="chk"><input type="checkbox" id="transBg">透明背景<em><!--@web-only-->（仅 PNG 与 GIF 有效，视频一律白底）<!--@end--></em></label>
  <button class="ghost" id="exportX">关闭</button></div></div>
 <div class="bar" id="hud"><figure><canvas id="hudF" width="460" height="230"></canvas><figcaption>正面</figcaption></figure><figure><canvas id="hudB" width="460" height="230"></canvas><figcaption>反面</figcaption></figure></div>
+<div id="postProg" role="status" aria-live="polite"><i id="postProgBar"></i><span id="postProgTx">正在生成动画…</span></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" role="dialog" aria-modal="true" aria-label="裁剪图片"><div class="box"><img id="cropImg" alt=""></div><div class="row"><button id="cropOk">确定</button> <button class="ghost" id="cropNo">取消</button></div></div>
 <div id="share" role="dialog" aria-modal="true" aria-label="分享"><div class="card"><b class="mark">分享</b>
@@ -590,16 +713,21 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
   <button id="shareGo" title="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg><span>分享给好友</span></button>
   <button class="ghost" id="shareCopy" title="复制链接"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>复制链接</span></button>
  </div>
+ <p id="wxHint" hidden></p>
  <button class="ghost" id="shareX">关闭</button></div></div>
+<div id="guide" role="dialog" aria-modal="true" aria-label="怎么用"><div class="card"><b class="mark">怎么用</b>
+ <p>拖动纸条，可从任意角度查看<br>点下方第一个编辑键开始编辑<br>做好后点右上角「完成」，即可导出或分享</p>
+ <button class="ghost" id="guideX">开始</button></div></div>
 <input type="file" id="fileFull" accept="image/jpeg,image/png" hidden><input type="file" id="fileStk" accept="image/jpeg,image/png" hidden><input type="file" id="fileTex" accept="image/*" hidden><input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2,font/*" hidden><input type="file" id="fileStkTex" accept="image/*" hidden>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!--@web-only--><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script><!--@end-->
+<!-- 小红书端由构建脚本在此处插入包内 ./lib/ 引用 -->
 <script>
 if(typeof THREE==='undefined'||!THREE.OrbitControls){      // CDN 没加载出来：给出提示，别留一个空白页
- document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;inset:0;display:grid;place-items:center;margin:0;padding:24px;text-align:center;color:#5c6573">三维引擎加载失败，请检查网络后刷新页面。</p>');
+ document.body.insertAdjacentHTML('beforeend','<p style="position:fixed;top:0;right:0;bottom:0;left:0;inset:0;display:grid;place-items:center;margin:0;padding:24px;text-align:center;color:#5c6573">三维引擎加载失败，请检查网络后刷新页面。</p>');
  throw new Error('three.js 未加载')}
 /* ===== 可替换接口 ===== */
 // [接口1] .fold 关键帧：key=折叠百分比(0展开~100折好)，value=15个顶点 xyz 展平数组。来自 Origami Simulator 导出。
@@ -629,6 +757,54 @@ toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';
   t.style.top=Math.round(Math.max(12,Math.min(c.bottom+12,innerHeight-t.offsetHeight-12)))+'px'}
  else t.style.top='';
  clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',2200)};
+
+/* ===== 平台出口：同一份源，两种落地 =====
+   网页版照旧联网分享；小红书版纯本地，走容器 API 发帖。
+   差异一律在这里探测，不按 UA / 机型分支。MT() 每次现读：容器注入 window.xhs
+   的时机晚于本脚本求值，缓存下来会把分享判到错的那一边。 */
+const MT=()=>(window.xhs&&window.xhs.miniTool)||null;
+const isMini=()=>!!MT();
+/* 平台专属实现各自往这几个口子上挂；被构建剥掉的那一边永远是 null。
+   留空接口位、而不是让两边互相调用，是为了让被剥掉的名字不出现在留存的代码里
+   —— 否则静态扫描仍会在包里扫到 fetch / 剪贴板这些禁用调用。 */
+let loadSharedHook=null,gifHook=null,sizeCheckHook=null,shareOpenHook=null,shareGoHook=null,shareCopyHook=null;
+
+/* ===== 能力基线 =====
+   目标内核是 Android 8.1 出场 WebView（Chrome 61）。两处探测各给 html 挂一个 class，
+   对应的基线样式只在老内核生效，现代端外观一点不变（见 <style> 里的 html:not(.fv) 段）。 */
+(function(){
+ const de=document.documentElement;
+ /* Flex gap 必须实测布局：@supports (gap:1px) / CSS.supports('gap','1px') 只能证明
+    认识这个属性，证明不了它在 flex 容器里真把间距撑开（Grid 支持、Flex 不支持的内核也会通过）。 */
+ try{const f=document.createElement('div');
+  f.style.cssText='position:absolute;visibility:hidden;display:flex;flex-direction:column;row-gap:1px';
+  f.appendChild(document.createElement('div'));f.appendChild(document.createElement('div'));
+  document.body.appendChild(f);
+  const ok=f.scrollHeight===1;f.parentNode.removeChild(f);
+  if(ok)de.className+=' flexgap'}catch(e){}
+ /* :focus-visible 是 Chrome 86：不认识就退回 :focus 焦点环，别让键盘焦点在基线端消失 */
+ try{document.querySelector(':focus-visible');de.className+=' fv'}catch(e){}
+})();
+
+/* ===== 「完成」按钮 =====
+   dirty 不能拿来用：它是 WebGL 重烘标志，rebake() 末尾就清掉了，跟「有没有未落定的改动」无关。
+   所以另起 edited。判定「用户改过」用事件委托 + isTrusted —— 真实的编辑动作必定发生在可信事件里，
+   而开机、应用预设、applyState、导出收尾都不是事件，脚本自己引发的改动一概不会被误判。
+   好处是散落在全文件的几十处 dirty=true 一个都不用动。 */
+let edited=false;
+function setEdited(v){if(v===edited)return;edited=v;
+ $('doneBtn').style.display=v?'':'none';
+ $('saveBtn').style.display=$('shareBtn').style.display=v?'none':''}
+const inEditUI=t=>!!(t&&t.closest&&(t.closest('#panel')||t.closest('#modal')));
+addEventListener('input',e=>{if(e.isTrusted&&inEditUI(e.target))setEdited(true)},true);
+/* change 不限定在面板内：选图/选字体的 <input type=file> 挂在 body 上。
+   只有「透明背景」是视图开关而非纸条内容，排除掉。 */
+addEventListener('change',e=>{if(e.isTrusted&&e.target.id!=='transBg')setEdited(true)},true);
+addEventListener('click',e=>{if(e.isTrusted&&inEditUI(e.target))setEdited(true)},true);
+/* 画布上真画了一笔、真拖了一次文字才算改动 —— 单纯点一下选中不算，
+   所以看 cur / drag 有没有被赋上值。捕获阶段先于下面那个把它们置空的冒泡监听器执行。 */
+addEventListener('pointerup',e=>{if(e.isTrusted&&(cur||drag))setEdited(true)},true);
+$('doneBtn').onclick=()=>setEdited(false);
 
 /* ===== 三维场景 ===== */
 const R=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true,preserveDrawingBuffer:true,alpha:true});   // alpha：导出透明底要用；屏幕上照样是白底（场景自带白背景）
@@ -1007,23 +1183,37 @@ const lockN=k=>Math.min((S.lkS&&S.lkS[k])||0,(S.strokes[k]||[]).length);
 function lockAll(){for(const t of S.texts||[])t.lk=1;S.lkS={f:(S.strokes.f||[]).length,b:(S.strokes.b||[]).length}}
 function syncReplyUI(){
  $('newBtn').style.display=reply&&mode==='make'?'':'none';
- $('shareGo').querySelector('span').textContent=reply?'回复给朋友':'分享给好友';
+ $('shareGo').querySelector('span').textContent=isMini()?'发布到小红书':(reply?'回复给朋友':'分享给好友');
  for(const b of RBTNS())b.style.display=reply&&b.dataset.g!=='text'&&b.dataset.g!=='draw'?'none':''}
-function enterReply(){reply=true;grp='text';            // 回复页只剩这两组，进来就落在文字
+function enterReply(){reply=true;grp='text';setEdited(false);            // 回复页只剩这两组，进来就落在文字
  mode='make';document.body.className='make';$('hintTxt').textContent='';
  editing=false;lockAll();                         // 先看看，再动手：和写新纸条一个节奏
  viewFace(1);anim(P,1,false);applyView();dirty=true;syncReplyUI();syncTool();
- placeViewBar()}
-function enterMake(){reply=false;grp='full';            // 这条是写全新的一张：回复的身份和锁一起丢掉
+ placeViewBar();guideOnce()}
+function enterMake(){reply=false;grp='full';setEdited(false);            // 这条是写全新的一张：回复的身份和锁一起丢掉
  mode='make';document.body.className='make';$('hintTxt').textContent='';
  editing=false;syncTool();                         // 进来先是不可编辑：先看看，再动手
  resetPaper();viewFace(1);                          // 空白模板，摆到正面
  anim(P,1,false);applyView();dirty=true;syncReplyUI();
- placeViewBar()}                                   // 滑轨这时才显形，正面/反面要重新量一次位置
+ placeViewBar();guideOnce()}                       // 滑轨这时才显形，正面/反面要重新量一次位置
 $('mkBtn').onclick=enterMake;$('repBtn').onclick=enterReply;$('newBtn').onclick=enterMake;
+/* ===== 开屏提示 =====
+   只在第一次进制作页时自己弹一次，之后靠左上角那颗问号再叫出来。
+   记性放在浏览器本地存储里；沙箱或隐私模式下读写会抛，所以一律 try 掉 ——
+   存不进去最坏就是每次都弹，不影响任何功能。 */
+const GUIDE_KEY='note.guide.seen';
+let guideOn=false;
+const guideRead=()=>{try{return localStorage.getItem(GUIDE_KEY)==='1'}catch(e){return false}};
+const guideWrite=()=>{try{localStorage.setItem(GUIDE_KEY,'1')}catch(e){}};
+function guideOpen(){guideOn=true;$('guide').style.display='flex'}
+function guideClose(){guideOn=false;$('guide').style.display='none';guideWrite()}
+function guideOnce(){if(!guideOn&&!guideRead())guideOpen()}
+$('guideBtn').onclick=guideOpen;
+$('guideX').onclick=guideClose;
+$('guide').onclick=e=>{if(e.target===$('guide'))guideClose()};   // 点卡片外面也算关掉
 /* 首页：把网址里的分享参数（?n= / #d=）整个丢掉再重进一次，落到的就是干净首页 ——
    随机样式照旧，而且此后刷新还是干净首页。 */
-$('homeBtn').onclick=()=>{const u=pageBase();if(u===location.href)location.reload();else location.href=u};
+/*@web-only*/$('homeBtn').onclick=()=>{const u=pageBase();if(u===location.href)location.reload();else location.href=u};/*@end*/
 
 /* ===== 拾取：射线→正反面画布坐标 ===== */
 const ray=new THREE.Raycaster();
@@ -1220,7 +1410,7 @@ $('tCol').oninput=()=>{if(sel){sel.color=$('tCol').value;dirty=true}};
 $('tFace').onchange=()=>{const k=$('tFace').value;if(sel){sel.face=k;dirty=true}faceLoad(k,$('tTxt').value||'折纸条')};
 $('tSize').oninput=e=>{$('tSizeV').textContent=e.target.value;if(sel){sel.size=+e.target.value;dirty=true}};
 $('tRot').oninput=e=>{snapRot(e.target);$('tRotV').textContent=e.target.value;if(sel){sel.rot=+e.target.value;dirty=true}};
-$('tCopy').onclick=()=>{if(!sel)return;const t={...sel,x:sel.x+48,y:sel.y+48};S.texts.push(t);sel=t;syncSel();dirty=true};
+$('tCopy').onclick=()=>{if(!sel)return;const t=Object.assign({},sel,{x:sel.x+48,y:sel.y+48});S.texts.push(t);sel=t;syncSel();dirty=true};
 $('tDel').onclick=()=>{if(sel){S.texts.splice(S.texts.indexOf(sel),1);sel=null;syncSel();dirty=true}};
 $('tClr').onclick=()=>{if(!S.texts.some(t=>!t.lk))return;S.texts=S.texts.filter(t=>t.lk);sel=null;syncSel();dirty=true};
 $('bW').oninput=e=>$('bWV').textContent=e.target.value;
@@ -1273,7 +1463,8 @@ $('viewF').onclick=()=>viewFace(1);$('viewB').onclick=()=>viewFace(-1);
 
 /* 封面贴图编辑器：坐标 = 折好(100%)时的俯视平面，每个面按自己折好后的位置取图 → 合起来天然对齐 */
 const F100=FRAMES[100],fx=v=>F100[v*3],fz=v=>F100[v*3+2],ALLF=[...FG.L,...FG.R];
-const ex_=ALLF.flatMap(f=>FACES[f].map(fx)),ez_=ALLF.flatMap(f=>FACES[f].map(fz));
+const flt=(a,f)=>Array.prototype.concat.apply([],[].map.call(a,f));
+const ex_=flt(ALLF,f=>FACES[f].map(fx)),ez_=flt(ALLF,f=>FACES[f].map(fz));
 const FX0=Math.min(...ex_),FX1=Math.max(...ex_),FZ0=Math.min(...ez_),FZ1=Math.max(...ez_),CX=(FX0+FX1)/2,CZ=(FZ0+FZ1)/2,SEAM=CX;
 const AF={};ALLF.forEach(fi=>{const P=FACES[fi].map(v=>[fx(v),fz(v)]),Q=tri(fi,'b'),d=(P[1][0]-P[0][0])*(P[2][1]-P[0][1])-(P[2][0]-P[0][0])*(P[1][1]-P[0][1]);
  const sol=k=>{const t=Q.map(q=>q[k]),a=((t[1]-t[0])*(P[2][1]-P[0][1])-(t[2]-t[0])*(P[1][1]-P[0][1]))/d,c=((t[2]-t[0])*(P[1][0]-P[0][0])-(t[1]-t[0])*(P[2][0]-P[0][0]))/d;return[a,c,t[0]-a*P[0][0]-c*P[0][1]]};
@@ -1600,98 +1791,192 @@ function stkSync(){const k=S.stk;
  if(sig!==stkSig){stkSig=sig;stkMats();stkBuild()}stkPos()}
 stkOn=true;
 
-/* ===== 分享：状态 → deflate → base64url → #d= ===== */
-const b64=u8=>{const a=new Uint8Array(u8);let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));   // 分块转换：展开运算符遇到大图会爆栈
- return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
-const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
-async function pipe(data,Stream){const s=new Blob([data]).stream().pipeThrough(new Stream('deflate-raw'));return new Uint8Array(await new Response(s).arrayBuffer())}
-let shareURL='',shareFail='';
-/* 链接瘦身：链接是自己背着全部内容的，图片就占了九成以上。
-   出链接前把每张图按最长边 720、webp 有损压一遍 —— 画质有损，但链接能从几兆掉到百 KB 级。
-   只动链接里那一份拷贝，编辑页里的原图一个字节都不碰。 */
-const SLIM_MAX=720,SLIM_Q=.62;
-/* 一轮压不到够小就再压一轮（尺寸更小、画质更低），取最小的那一份。
-   尺寸特别大的照片、只能存成 PNG 的透明图，一轮下来往往还有几百 KB，链接照样背不动。 */
-const SLIM_STEPS=[[SLIM_MAX,SLIM_Q],[520,.55],[380,.48],[280,.42]];
-function slimImg(u){return new Promise(res=>{
- if(typeof u!=='string'||u.slice(0,11)!=='data:image/')return res(u);
- const im=new Image();
- im.onload=()=>{try{
-  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,long=Math.max(iw,ih)||1;
-  if(u.slice(0,15)==='data:image/webp'&&long<=SLIM_MAX)return res(u);   // 上一手压过的：链接来回转发也只会压这一次
-  let best=u;
-  for(const step of SLIM_STEPS){
-   const k=Math.min(1,step[0]/long),c=document.createElement('canvas');
-   c.width=Math.max(1,Math.round(iw*k));c.height=Math.max(1,Math.round(ih*k));
-   c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-   let out=c.toDataURL('image/webp',step[1]);
-   if(out.slice(0,15)!=='data:image/webp')out=c.toDataURL('image/png');   // 老浏览器没有 webp：退回 png，透明不丢
-   if(out.length<best.length)best=out;
-   if(best.length<100*1024)break}                    // 已经够小，不用再往下压
-  res(best)}catch(e){res(u)}};
- im.onerror=()=>res(u);im.src=u})}
-async function slimState(){
- const s=JSON.parse(JSON.stringify(S)),jobs=[];
- if(s.texts)for(const t of s.texts)if(UF[t.face])bakeText(t);   // 自定义字体的文字：烘成图再带走        // 深拷一份再动，原状态不受影响
- for(const k of['f','b'])if(s.full&&s.full[k])jobs.push(slimImg(s.full[k]).then(v=>s.full[k]=v));
- if(s.stk)for(const k of['one','L','R']){const o=s.stk[k];if(o&&o.u)jobs.push(slimImg(o.u).then(v=>o.u=v))}
- if(s.stk&&s.stk.texU)jobs.push(slimImg(s.stk.texU).then(v=>s.stk.texU=v));
- await Promise.all(jobs);return s}
-/* 分享走短链：纸条数据先交给服务器换一个短码回来（functions/api/n.js），
-   网址里就只剩十几个字符，微信才发得出去。换不到（本地打开、断网、图太多后端存不下）
-   就退回老办法：整份数据塞在 #d= 后面，链接长，但一定能用 —— 换不成的缘故记在 shareFail 里，
-   点分享时照实说，不闷着。 */
-const pageBase=()=>location.protocol==='file:'?location.href.split(/[#?]/)[0]:location.origin+location.pathname;
-async function shortURL(blob){
- try{const r=await fetch('api/n',{method:'POST',body:blob});
-  if(r.ok){const j=await r.json();if(j&&j.id)return{url:pageBase()+'?n='+j.id}}
-  else if(r.status===413)return{why:'too-big'}          // 后端不收：这一份超过了它的上限
-  return{why:'server'}}
- catch(e){return{why:'offline'}}}
-/* 一份要发出去的数据：先缩图，再压，再 base64。服务器就是按这份的字符数决定收不收。 */
-async function shareBlob(){
- const s=await slimState(),tex=(texCur&&texCur!==TEXTURE_URL)?await slimImg(texCur):null;   // 自定义纸纹也跟着走，否则对方看到的是默认纸纹
- const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));   // 带 r 的链接打开就是回复页
- return b64(await pipe(j,CompressionStream))}
-async function makeURL(){
- const blob=await shareBlob(),r=await shortURL(blob),u=r.url||pageBase()+'#d='+blob;
- shareFail=r.why||'';shareURL=u;return u}
-/* 分享体积：服务器一条最多 SHARE_CAP 个字符，超了就只能给长链接。
-   图片是唯一能把体积撑起来的东西，所以每加一张就在后台量一遍 ——
-   只有真过载才提醒，且只提醒那一次，之后反复加图不再重复唠叨。 */
-const SHARE_CAP=512*1024;
-let shareFull=false,sizeT=0;
-function sizeCheck(){clearTimeout(sizeT);sizeT=setTimeout(async()=>{
- try{const over=(await shareBlob()).length>SHARE_CAP;
-  if(over&&!shareFull)toast('图片过载，仅可分享长链接。');
-  shareFull=over}
- catch(e){}},600)}
-async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
- const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
- document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
-/* 分享面板里两颗按钮各管一件事：
-   「分享给朋友」只唤系统分享面板（面板里是这台手机装了的应用），不碰剪贴板 ——
-   面板弹没弹、发没发出去由系统说了算，这里不替它报「已复制」，免得说了假话。
-   「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。
-   复制必须在点击手势里发起，不能等 await。 */
-const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
-function closeShare(){$('share').style.display='none'}
-$('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;$('shareCopy').disabled=true;
- try{const u=await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
-  let why='';
-  if(shareFail==='too-big')why='图片过多，链接偏长可能发不出去。';
-  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，链接偏长可能发不出去。';
-  else if(shareFail)why='短链生成失败，链接偏长可能发不出去。';
-  if(why)toast(why)}
- catch(e){toast('链接生成失败，请检查网络。')}};
-$('shareX').onclick=closeShare;
-$('share').onclick=e=>{if(e.target===$('share'))closeShare()};
-const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
-$('shareGo').onclick=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
- if(!navigator.share)return toast('这台设备不支持系统分享，请用「复制链接」');
- navigator.share({title:SHARE_TITLE,text:shareWord(),url:u}).then(()=>closeShare()).catch(()=>{})};
-$('shareCopy').onclick=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
- putClip(shareWord()+'\n'+u).then(ok=>toast(ok?'链接已复制':'复制失败，请再点一次'))};
+	/* ===== 分享 =====
+	   同一份源、两种落地。网页版的分享是「状态 → deflate → base64url」，走 ?n= 短链或
+	   #d= 长链接；小红书版没有网络也没有剪贴板，改走容器的 postNote 发帖子。
+	   两边各写各的实现，只往 shareOpen / shareGo / shareCopy 三个挂钩上挂函数 ——
+	   面板怎么开、怎么关、按钮怎么禁用，两版一样，写在下面共用。 */
+	function closeShare(){$('share').style.display='none'}
+	$('shareX').onclick=closeShare;
+	$('share').onclick=e=>{if(e.target===$('share'))closeShare()};
+	/* 挂钩没挂上（正常不会发生）也要出声：按钮点了没反应，比报一句错更难查。 */
+	function fireHook(h,what){
+	 if(!h)return toast('此版本不支持'+what);
+	 try{const r=h();if(r&&r.catch)r.catch(()=>toast(what+'失败，请重试'))}
+	 catch(e){toast(what+'失败，请重试')}}
+	$('shareBtn').onclick=()=>{$('share').style.display='flex';if(shareOpenHook)shareOpenHook()};
+	$('shareGo').onclick=()=>fireHook(shareGoHook,'分享');
+	$('shareCopy').onclick=()=>fireHook(shareCopyHook,'复制');
+	/* 分享体积：图片是唯一能把链接撑起来的东西，所以每加一张就在后台量一遍 ——
+	   只有真过载才提醒，且只提醒那一次，之后反复加图不再唠叨。小红书版不发链接，这里空着。 */
+	function sizeCheck(){if(sizeCheckHook)sizeCheckHook()}
+
+	/* ---------- 网页版：链接分享 ----------
+	   纸条数据先交给服务器换一个短码回来（functions/api/n.js），网址里只剩十几个字符，
+	   微信才发得出去。换不到（本地打开、断网、图太多后端存不下）就退回老办法：
+	   整份数据塞在 #d= 后面，链接长，但一定能用 —— 换不成的缘故记在 shareFail 里。
+	   这一段整块只在网页版存在：里面的 fetch / 剪贴板 / 短链都是小红书版被禁的能力，
+	   留着哪怕不执行也会被静态扫描判违规，所以构建时按标记整段删掉。 */
+	/*@web-only*/
+	let shareURL='',shareFail='';
+	const b64=u8=>{const a=new Uint8Array(u8);let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));   // 分块转换：展开运算符遇到大图会爆栈
+	 return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+	const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+	async function pipe(data,Stream){const s=new Blob([data]).stream().pipeThrough(new Stream('deflate-raw'));return new Uint8Array(await new Response(s).arrayBuffer())}
+	/* 链接瘦身：链接是自己背着全部内容的，图片就占了九成以上。
+	   出链接前把每张图按最长边 720、webp 有损压一遍 —— 画质有损，但链接能从几兆掉到百 KB 级。
+	   只动链接里那一份拷贝，编辑页里的原图一个字节都不碰。 */
+	const SLIM_MAX=720,SLIM_Q=.62;
+	/* 一轮压不到够小就再压一轮（尺寸更小、画质更低），取最小的那一份。
+	   尺寸特别大的照片、只能存成 PNG 的透明图，一轮下来往往还有几百 KB，链接照样背不动。 */
+	const SLIM_STEPS=[[SLIM_MAX,SLIM_Q],[520,.55],[380,.48],[280,.42]];
+	function slimImg(u){return new Promise(res=>{
+	 if(typeof u!=='string'||u.slice(0,11)!=='data:image/')return res(u);
+	 const im=new Image();
+	 im.onload=()=>{try{
+	  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,long=Math.max(iw,ih)||1;
+	  if(u.slice(0,15)==='data:image/webp'&&long<=SLIM_MAX)return res(u);   // 上一手压过的：链接来回转发也只会压这一次
+	  let best=u;
+	  for(const step of SLIM_STEPS){
+	   const k=Math.min(1,step[0]/long),c=document.createElement('canvas');
+	   c.width=Math.max(1,Math.round(iw*k));c.height=Math.max(1,Math.round(ih*k));
+	   c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+	   let out=c.toDataURL('image/webp',step[1]);
+	   if(out.slice(0,15)!=='data:image/webp')out=c.toDataURL('image/png');   // 老浏览器没有 webp：退回 png，透明不丢
+	   if(out.length<best.length)best=out;
+	   if(best.length<100*1024)break}                    // 已经够小，不用再往下压
+	  res(best)}catch(e){res(u)}};
+	 im.onerror=()=>res(u);im.src=u})}
+	async function slimState(){
+	 const s=JSON.parse(JSON.stringify(S)),jobs=[];
+	 if(s.texts)for(const t of s.texts)if(UF[t.face])bakeText(t);   // 自定义字体的文字：烘成图再带走        // 深拷一份再动，原状态不受影响
+	 for(const k of['f','b'])if(s.full&&s.full[k])jobs.push(slimImg(s.full[k]).then(v=>s.full[k]=v));
+	 if(s.stk)for(const k of['one','L','R']){const o=s.stk[k];if(o&&o.u)jobs.push(slimImg(o.u).then(v=>o.u=v))}
+	 if(s.stk&&s.stk.texU)jobs.push(slimImg(s.stk.texU).then(v=>s.stk.texU=v));
+	 await Promise.all(jobs);return s}
+	const pageBase=()=>location.protocol==='file:'?location.href.split(/[#?]/)[0]:location.origin+location.pathname;
+	async function shortURL(blob){
+	 try{const r=await fetch('api/n',{method:'POST',body:blob});
+	  if(r.ok){const j=await r.json();if(j&&j.id)return{url:pageBase()+'?n='+j.id}}
+	  else if(r.status===413)return{why:'too-big'}          // 后端不收：这一份超过了它的上限
+	  return{why:'server'}}
+	 catch(e){return{why:'offline'}}}
+	/* 一份要发出去的数据：先缩图，再压，再 base64。服务器就是按这份的字符数决定收不收。 */
+	async function shareBlob(){
+	 const s=await slimState(),tex=(texCur&&texCur!==TEXTURE_URL)?await slimImg(texCur):null;   // 自定义纸纹也跟着走，否则对方看到的是默认纸纹
+	 const j=JSON.stringify(Object.assign(tex?{s,tex}:{s},reply?{r:1}:{}));   // 带 r 的链接打开就是回复页
+	 return b64(await pipe(j,CompressionStream))}
+	async function makeURL(){
+	 const blob=await shareBlob(),r=await shortURL(blob),u=r.url||pageBase()+'#d='+blob;
+	 shareFail=r.why||'';shareURL=u;return u}
+	/* 服务器一条最多 SHARE_CAP 个字符，超了就只能给长链接。 */
+	const SHARE_CAP=512*1024;
+	let shareFull=false,sizeT=0;
+	sizeCheckHook=function(){clearTimeout(sizeT);sizeT=setTimeout(async()=>{
+	 try{const over=(await shareBlob()).length>SHARE_CAP;
+	  if(over&&!shareFull)toast('图片过载，仅可分享长链接。');
+	  shareFull=over}
+	 catch(e){}},600)};
+	async function putClip(u){try{await navigator.clipboard.writeText(u);return true}catch(e){}
+	 const a=document.createElement('textarea');a.value=u;a.style.cssText='position:fixed;top:0;left:0;opacity:0';
+	 document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
+	const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
+	const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
+	shareOpenHook=async()=>{
+	 $('shareGo').disabled=true;$('shareCopy').disabled=true;
+	 try{await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
+	  let why='';
+	  if(shareFail==='too-big')why='图片过多，链接偏长可能发不出去。';
+	  else if(shareFail==='offline'&&location.protocol!=='file:')why='网络未连接，链接偏长可能发不出去。';
+	  else if(shareFail)why='短链生成失败，链接偏长可能发不出去。';
+	  if(why)toast(why)}
+	 catch(e){toast('链接生成失败，请检查网络。')}};
+	/* 两颗按钮各管一件事：「分享给朋友」只唤系统分享面板（面板里是这台手机装了的应用），
+	   不碰剪贴板 —— 弹没弹、发没发出去由系统说了算，这里不替它报「已复制」。
+	   「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。 */
+	shareGoHook=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
+	 if(!navigator.share)return toast('这台设备不支持系统分享，请用「复制链接」');
+	 return navigator.share({title:SHARE_TITLE,text:shareWord(),url:u}).then(()=>closeShare()).catch(()=>{})};
+	shareCopyHook=()=>{const u=shareURL;if(!u)return toast('链接还在生成，请稍候');
+	 return putClip(shareWord()+'\n'+u).then(ok=>toast(ok?'链接已复制':'复制失败，请再点一次'))};
+	/*@end*/
+
+	/* ---------- 小红书端：发帖子 ----------
+	   容器禁网络、禁剪贴板、禁 a[download]，链接分享整条路走不通，改成发一条笔记：
+	   两张成品 PNG 外加折叠动画视频，视频同时当实况里动的那一半。
+	   录成 webm（writeTempFile 不收 webm）或者录制失败，就丢掉实况退回纯图文。
+	   「回复」只有链接分享才有，这一点在面板里照实写出来。 */
+	if(isMini()){
+	 $('shareCopy').style.display='none';                       // 剪贴板被禁，留着只会骗人
+	 $('wxHint').hidden=false;
+	 /* 断成两行是有意的：整句一行大约 390px，卡片正文只有 296px，浏览器会在
+	    网址中间折一次，末行只剩几个字，看着像没写完。分两行后每行都短于正文宽，
+	    不会再折，地址单独一行也更像「地址」。
+	    用 textContent + white-space:pre-line，不去赋值 HTML 字符串 —— 容器若开了
+	    Trusted Types，那种写法会直接抛错；这样还让两行同属一个文本节点，
+	    长按选中复制出来才是完整一句。 */
+	 $('wxHint').textContent='想让对方能回复你，请用网页版分享\nalittlenote.pages.dev';
+	 $('shareGo').disabled=false;                               // 没有链接要生成，不必先禁用
+	 shareOpenHook=function(){};                                // 面板一开就能点
+	 shareGoHook=sharePost;
+	 const mp4Btn=$('export').querySelector('button[data-x="mp4"]');
+	 if(mp4Btn)mp4Btn.style.display='none';                     // 容器没有「存视频到相册」的 API，视频只走发帖
+	 /* 上面藏了 MP4、构建又整行删了 GIF，导出面板少两项却没有任何解释。
+	    容器里补不回来，只能指去网页版；同受禁外链所限，地址得自己敲。 */
+	 $('expHint').hidden=false;
+	 $('expHint').textContent='视频与动图请在网页版导出\nalittlenote.pages.dev'}
+
+	/* ===== 发帖子 =====
+	   三张素材：正面 PNG、反面 PNG、折叠动画。前两张由 facePNGData 出，第三张由 recVideoBlob 现录。
+	   三条都先过 writeTempFile 换成容器路径再交给 postNote —— 规范只说 writeTempFile 吃 base64，
+	   没说 postNote 一定吃，绕一道最稳。实况要客户端 9.43+ 才有，认不得就退回纯图文，
+	   不让「实况不可用」变成「整条发不出去」。 */
+	function postProgress(tx,p){
+	 const e=$('postProg');e.style.display='flex';$('postProgTx').textContent=tx;
+	 if(p==null)e.className='indet';                            // 说不准进度就换成来回呼吸，不假装知道
+	 else{e.className='';$('postProgBar').style.backgroundSize=(Math.round(p*100))+'% 100%'}}
+	function postHide(){$('postProg').style.display='none';$('postProg').className=''}
+	/* 容器 API 一律现读，不缓存：window.xhs 可能晚于本脚本注入。
+	   传了回调返回 undefined、不传返回 Promise，两种都当 Promise 收。 */
+	function callMini(fn,arg){return new Promise((res,rej)=>{
+	 const m=MT();if(!m||typeof m[fn]!=='function')return rej(new Error('容器没有 '+fn));
+	 try{const r=m[fn](arg);
+	  if(r&&typeof r.then==='function')r.then(res,rej);
+	  else if(r&&r.errMsg&&String(r.errMsg).indexOf(':fail')>-1)rej(new Error(r.errMsg));
+	  else res(r||{})}
+	 catch(e){rej(e)}})}
+	/* Blob.arrayBuffer() 要 Chrome 76，超出目标基线，所以走 FileReader。 */
+	function blobToURL(b){return new Promise((res,rej)=>{const r=new FileReader();
+	 r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)})}
+	async function tempFile(d){const r=await callMini('writeTempFile',{data:d});
+	 if(!r||!r.filePath)throw new Error('writeTempFile 没有返回路径');return r.filePath}
+	async function sharePost(){
+	 const P0=P;
+	 frozen=true;busy=true;exporting=true;rebake();              // 跟导出同一套冻结：画面定格，交互挡住
+	 try{
+	  postProgress('正在生成图片…',0);
+	  const front=await facePNGData(1),back=await facePNGData(-1);
+	  postProgress('正在生成动画…',0);
+	  let v=null;try{v=await recVideoBlob(p=>postProgress('正在生成动画…',p))}catch(e){v=null}
+	  const mp4=(v&&v.mime&&v.mime.indexOf('mp4')>-1)?v:null;
+	  postProgress('正在准备发布…',null);
+	  const fu=await tempFile(front),bu=await tempFile(back);
+	  let fv=null;if(mp4){try{fv=await tempFile(await blobToURL(mp4.blob))}catch(e){fv=null}}
+	  /* 有实况：封面用正面，所以正面只进 live_photo_sources，反面是第二张 —— 正面不会重复出现。
+	     没有实况：两张都进 image_resources。 */
+	  let posted=false;
+	  if(fv){try{
+	   await callMini('postNote',{title:'小纸条',content:'你收到了一张纸条',
+	    pageType:'slides_edit',
+	    mediaInfo:{live_photo_sources:[{url:fu,video_url:fv}],image_resources:[{url:bu}]}});
+	   posted=true}
+	  catch(e){/* 客户端不认实况：接着走下面那条纯图文，别让整次发布折在这儿 */}}
+	  if(!posted)await callMini('postNote',{title:'小纸条',content:'你收到了一张纸条',
+	   pageType:'photo_publish',mediaInfo:{image_resources:[{url:fu},{url:bu}]}});
+	  closeShare();
+	  toast(fv? '已打开发布页' : (mp4?'实况不可用，已按图文发布':'已按图文打开发布页'))}
+	 catch(e){toast('发布失败，请稍后重试')}
+	 finally{postHide();frozen=false;busy=false;exporting=false;dirty=true;setP(P0)}}
 function applyState(j){const d=defaultS(),s=j.s||{};
   S=Object.assign(d,s,{strokes:Object.assign(d.strokes,s.strokes),full:Object.assign(d.full,s.full),texts:Array.isArray(s.texts)?s.texts:d.texts});   // 缺字段的旧链接用默认值补齐
   S.stk=S.stk||{mode:'one',one:null,L:null,R:null,cut:null};
@@ -1702,7 +1987,8 @@ function applyState(j){const d=defaultS(),s=j.s||{};
   if(S.stk.texU)setStkTex(S.stk.texU);             // 链接里带着贴面纹理就重新挂上
   if(typeof S.texA!=='number')S.texA=1;      // 老链接没有这一项，按「纹理原样」算
   if(j.tex)setTexture(j.tex);
- stkSig='';sel=null;setLit(S.light);syncSel();syncTool();syncFull();syncTexA();edSync();loadFaces();dirty=true}
+ stkSig='';sel=null;setEdited(false);setLit(S.light);syncSel();syncTool();syncFull();syncTexA();edSync();loadFaces();dirty=true}
+/*@web-only*/
 /* 带链接打开：短链（?n=）回服务器取数据，老链接（#d=）数据就在网址里。
    服务器那边刚存完就到别处打开有可能扑空，所以隔一会儿再问两次才认账。 */
 async function loadShared(){
@@ -1717,12 +2003,29 @@ async function loadShared(){
   applyState(j);fromLink=true;$('repBtn').style.display='';$('homeBtn').style.display='flex';   // 「回复」和「首页」都只给带链接来的人看，首页自己进来没有
   if(j.r){reply=true;lockAll();syncReplyUI()}}                 // 对方回的纸条：他写的全锁上，你只能往上加
  catch(err){toast('分享链接无法解析')}}
+loadSharedHook=loadShared;
+/*@end*/
 
 /* ===== 导出 ===== */
 $('saveBtn').onclick=()=>{$('export').style.display='flex'};
 $('exportX').onclick=()=>{$('export').style.display='none'};
-const save=(url,n)=>{const a=document.createElement('a');a.href=url;a.download=n;document.body.appendChild(a);a.click();a.remove();
- if(url.startsWith('blob:'))setTimeout(()=>URL.revokeObjectURL(url),1e4)};
+/* 成品出口：同一份成品，网页版下载到电脑，小红书版交给容器存相册。
+   两边各写一个实现，这里只转发 —— a[download] 与 saveImageToPhotosAlbum
+   各自只出现在该出现的那一边，静态扫描两边都干净。 */
+const deliver=(value,name,kind)=>{
+ if(isMini())return deliverMini(value,name,kind);
+/*@web-only*/return deliverWeb(value,name)/*@end*/};
+/*@web-only*/
+function deliverWeb(url,n){const a=document.createElement('a');a.href=url;a.download=n;document.body.appendChild(a);a.click();a.remove();
+ if(url.startsWith('blob:'))setTimeout(()=>URL.revokeObjectURL(url),1e4)}
+/*@end*/
+/* 小红书版：容器只能把图片存进相册，没有「存视频到相册」的 API，
+   视频与样式 JSON 在这儿没有去处，照实说一句，不假装成功。 */
+function deliverMini(value,name,kind){
+ if(kind==='png')return callMini('saveImageToPhotosAlbum',{filePath:value})
+  .then(()=>toast('已保存到相册'),()=>toast('保存失败，请重试'));
+ if(kind==='video')return Promise.resolve(toast('视频请从「分享」发布，会作为实况附在笔记里'));
+ return Promise.resolve(toast('此版本不支持该导出'))}
 /* ===== 样式数据出口 =====
    在编辑页把纸片调成一套样式后按 Ctrl+Shift+E，导出一份 JSON（图都是 data URL，自带）。
    这份数据就是首页的一套预设。出口对正常使用完全隐形：不点它就什么都不会发生，
@@ -1733,7 +2036,7 @@ function dumpStyle(){
   s=JSON.parse(JSON.stringify(S));                 // 深拷一份再动，手上这套状态不受影响
  if(s.texts)for(const t of s.texts)bakeText(t);     // 预设是给首页看的：字烘成图带走，首页就不必再下几兆字体
  const j={v:1,at:d.toISOString(),tex:(texCur&&texCur!==TEXTURE_URL)?texCur:null,s};
- save(URL.createObjectURL(new Blob([JSON.stringify(j)],{type:'application/json'})),'折纸条-样式-'+stamp+'.json');
+ deliver(URL.createObjectURL(new Blob([JSON.stringify(j)],{type:'application/json'})),'折纸条-样式-'+stamp+'.json','json');
  toast('样式数据已导出')}
 addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&(e.key==='E'||e.key==='e')){e.preventDefault();dumpStyle()}});
 if(+(new URLSearchParams(location.search).get('exp'))){
@@ -1820,7 +2123,7 @@ function shoot(W,H){
    —— 展开态是 2:1，宽占格子宽的 0.8，高就正好是 0.6；折叠态跟着用同一个高度，两张看着一样大。 */
 const CELL_W=1536,CELL_H=1024,PNG_W=1536,PNG_H=2048,CONTENT_H=CELL_H*.6,CONTENT_W=CELL_W*.8,CONTENT_HM=CELL_H*.8;
 /* 正面 / 反面 PNG：上格＝折好的样子，下格＝展开的样子，都居中留白 */
-async function facePNG(sd){
+async function facePNGData(sd){
  const dir=faceDir(sd),trans=$('transBg').checked,
   out=document.createElement('canvas');out.width=PNG_W;out.height=PNG_H;
  const g=out.getContext('2d');
@@ -1841,7 +2144,10 @@ async function facePNG(sd){
    k=Math.max(kMin,Math.min(k0,CONTENT_W/b.w,CONTENT_HM/b.h));   // 再兜一次底：宽或高顶到 0.8 都不裁
   g.drawImage(shoot(CELL_W,CELL_H),CELL_W/2-(q.l+q.r)/2*k,i*CELL_H+CELL_H/2-(q.t+q.b)/2*k,CELL_W*k,CELL_H*k)}
  alphaOff();
- save(out.toDataURL('image/png'),sd>0?'paper-front.png':'paper-back.png')}
+ return out.toDataURL('image/png')}
+/* 网页版的一条出口：存成文件。小红书版由发帖子直接取 dataURL，不过这里。 */
+async function facePNG(sd){
+ deliver(await facePNGData(sd),sd>0?'paper-front.png':'paper-back.png','png')}
 /* 折叠动画的时间轴（毫秒）：定格折好 → 展开 → 停 → 折回 → 收尾，共 7 秒 */
 const TL=[[0,100],[500,100],[3300,0],[3800,0],[6600,100],[7000,100]];
 function pAt(t){const T=TL;for(let i=0;i<T.length-1;i++){const a=T[i],b=T[i+1];
@@ -1853,10 +2159,10 @@ const SZ_M=1080,SZ_G=420,FILL_SHOT=.72;   // 视频/GIF 里纸最大占画面的
    1080×1080 一帧要来回搬十几兆，主线程被占满、编码器也跟着掉帧（成片只剩四秒）。
    现在一帧就一次绘制，主线程留得出空当，编码器跟得上，时间轴也就完整了。 */
 let recCv=null,recR=null;
-async function recVideo(){
+async function recVideoBlob(onProgress){
  const mt=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm']
   .filter(t=>{try{return MediaRecorder.isTypeSupported(t)}catch(e){return false}})[0];
- if(!mt){toast('这台设备不支持录制 MP4');return}
+ if(!mt)throw new Error('这台设备不支持录制 MP4');
  let cv=recCv,gl=recR;
  if(!cv){cv=document.createElement('canvas');cv.width=cv.height=SZ_M;
   try{gl=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false,preserveDrawingBuffer:true});
@@ -1879,10 +2185,16 @@ async function recVideo(){
  for(let i=0;i<=N;i++){
   const pp=pAt(TOTAL*i/N);P=pp;updateGeom(pp);
   draw();track.requestFrame();
+  if(onProgress)onProgress(i/N);                    // 发帖那条路要拿它撑进度条，导出这条路不传
   const w=t0+i*1000/FPS-performance.now();if(w>0)await wait(w)}
  rec.stop();await stopped;
- save(URL.createObjectURL(new Blob(ch,{type:mt.split(';')[0]})),'paper-fold.'+(mt.indexOf('mp4')>-1?'mp4':'webm'));
+ return{blob:new Blob(ch,{type:mt.split(';')[0]}),mime:mt}}
+/* 网页版的一条出口：录完存成文件。录不出来就说不能录，别让导出流程崩在这儿。 */
+async function recVideo(){
+ let r;try{r=await recVideoBlob(null)}catch(e){return toast('这台设备不支持录制 MP4')}
+ deliver(URL.createObjectURL(r.blob),'paper-fold.'+(r.mime.indexOf('mp4')>-1?'mp4':'webm'),'video');
  toast('视频已导出')}
+/*@web-only*/
 /* 透明 GIF 的纸边有抗锯齿，那些半透明的像素混上洋红同样是一圈紫。色键只认整块纯洋红，
    所以先把它们二值化：够实心的反预乘回本色（读回来的是预乘值），不够的一律写成纯洋红交给键抠掉。 */
 function cutKey(c,T=128){
@@ -1913,7 +2225,9 @@ async function recGif(){
    x.drawImage(trans?cutKey(s):s,0,0);g.addFrame(x,{copy:true,delay:70})}
  }finally{gr.visible=gv}
  alphaOff();
- g.on('finished',b=>{save(URL.createObjectURL(b),'paper-fold.gif');toast('GIF 已导出')});g.render()}
+ g.on('finished',b=>{deliver(URL.createObjectURL(b),'paper-fold.gif','gif');toast('GIF 已导出')});g.render()}
+gifHook=async()=>{toast('正在生成 GIF…');await recGif()};
+/*@end*/
 document.querySelectorAll('#export button[data-x]').forEach(b=>b.onclick=async()=>{
  $('export').style.display='none';if(busy||exporting)return;
  const k=b.dataset.x,P0=P;exporting=true;busy=true;frozen=true;rebake();
@@ -1921,7 +2235,7 @@ document.querySelectorAll('#export button[data-x]').forEach(b=>b.onclick=async()
   if(k==='png-f')await facePNG(1);
   else if(k==='png-b')await facePNG(-1);
   else if(k==='mp4')await recVideo();
-  else if(k==='gif'){toast('正在生成 GIF…');await recGif()}
+  else if(k==='gif'&&gifHook)await gifHook()
  }catch(err){alphaOff();toast('导出失败，请重试或换格式。')}
  frozen=false;busy=false;exporting=false;dirty=true;setP(P0)})
 
@@ -1988,7 +2302,7 @@ async function settleState(){
  if(texCur&&texCur!==TEXTURE_URL)js.push(imgReady(texCur));
  await Promise.all(js)}
 /* ===== 主循环 ===== */
-(async()=>{await loadShared();viewDOn=true;updateViewD();setP(100,true);layoutTags();
+(async()=>{if(loadSharedHook)await loadSharedHook();viewDOn=true;updateViewD();setP(100,true);layoutTags();
  addEventListener('resize',layoutTags);
  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(mode==='view')layoutTags()});syncSel();syncTool();syncFull();syncTexA();
  const home=window.__homeP||Promise.resolve(),waitHome=!!window.__homeP;
