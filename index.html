@@ -1628,9 +1628,14 @@ async function putClip(u){try{await navigator.clipboard.writeText(u);return true
    「复制链接」才是复制：标语＋链接一起写进剪贴板，粘到哪儿都能发。
    复制必须在点击手势里发起，不能等 await。 */
 const SHARE_TITLE='小纸条',SHARE_TEXT='你收到了一张小纸条~',SHARE_RETEXT='我回复了你的纸条……';
+/* 链接长度警戒线：只写字的纸条几百个字符，一旦贴了图就上万 ——
+   微信这类聊天工具的输入框塞不下这么长的链接，发不出去，或者发出去被截断。 */
+const LINK_MAX=2000;
 function closeShare(){$('share').style.display='none'}
 $('shareBtn').onclick=async()=>{$('share').style.display='flex';$('shareGo').disabled=true;$('shareCopy').disabled=true;
- try{await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false}catch(e){toast('链接生成失败')}};
+ try{const u=await makeURL();$('shareGo').disabled=false;$('shareCopy').disabled=false;
+  if(u.length>LINK_MAX)toast('链接有 '+u.length+' 个字符，微信等聊天工具可能发不出去、或发出去被截断，对方打开会看不到你的纸条')}
+ catch(e){toast('链接生成失败')}};
 $('shareX').onclick=closeShare;
 $('share').onclick=e=>{if(e.target===$('share'))closeShare()};
 const shareWord=()=>reply?SHARE_RETEXT:SHARE_TEXT;   // 回复页带回复那句话，别的一律用标语
