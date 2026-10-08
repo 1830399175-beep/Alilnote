@@ -383,6 +383,42 @@ body.view #tagline{display:flex}
  #modal .cropper-bg{background-image:none!important;background:#fff!important}
 #modal .row{display:flex;gap:10px}
 
+/* ---------- 抠图 ---------- */
+#matte{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:12;display:none;align-items:center;justify-content:center;padding:20px;
+  background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#matte .card{width:92vw;max-width:420px;width:min(92vw,420px);max-height:92vh;overflow-y:auto;
+  display:flex;flex-direction:column;padding:18px;border-radius:var(--r-lg);
+  background:var(--glass);border:1px solid rgba(20,24,33,.075);box-shadow:0 26px 60px -22px rgba(16,20,30,.45);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+#matte .mhead{display:flex;align-items:baseline;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+#matte .mhead b{font:600 13px/1 var(--ui);color:var(--ink)}
+#matte .mhead .sub{margin-left:auto;font:400 11.5px/1 var(--ui);color:var(--ink3);font-variant-numeric:tabular-nums}
+#matte .mstage{display:flex;align-items:center;justify-content:center;margin:14px 0 12px;padding:10px;border-radius:var(--r-md);background:#fff}
+#matte .mwrap{position:relative;line-height:0;max-width:100%}   /* 贴着画布，撤销图标才能钉在图片的左上角 */
+#matte .mrow button.on{box-shadow:none}                        /* 整行通栏，带一圈外发光反而像焦点框 */
+#matte .dis{opacity:.32;pointer-events:none;user-select:none}
+#matte:not(.cut) #mtUndo{display:none}        /* 还在选图那一屏，撤销图标不该露头 */
+#matte #mtUndo{position:absolute;left:10px;top:10px;width:32px;height:32px;padding:0;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.86);
+  border:1px solid var(--hair);color:var(--ink);box-shadow:0 3px 10px -3px rgba(16,20,30,.3)}
+#matte #mtUndo:hover{background:#fff;border-color:var(--hair2)}
+#matte #mtUndo svg{display:block;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+/* 进编辑态才铺棋盘格：还没抠之前图是不透明的，露一圈格子会让人误以为已经透明了。
+   格子用两层 45° 线性渐变拼，别用 conic-gradient（Chrome 69 才有，小工具基线是 61）。 */
+#matte.cut .mstage{background-color:#f8fafc;background-size:20px 20px;background-position:0 0,10px 10px;
+  background-image:linear-gradient(45deg,#e7eaef 25%,transparent 25%,transparent 75%,#e7eaef 75%),
+                   linear-gradient(45deg,#e7eaef 25%,transparent 25%,transparent 75%,#e7eaef 75%)}
+#matte .mstage canvas{display:block;width:auto;height:auto;max-width:100%;max-height:44vh;border-radius:6px;touch-action:none;cursor:crosshair}
+#matte .mnote{font:400 11.5px/1.5 var(--ui);color:var(--ink3);min-height:1.5em;margin-bottom:12px}
+#matte .mrow{display:flex}
+#matte .mrow>*+*{margin-left:10px}
+#matte .mrow button{flex:1;justify-content:center}
+#matte #mtEdit>*+*{margin-top:12px}
+#matte .fld{display:flex;flex-direction:column}
+#matte .fl{display:flex;align-items:baseline;font:400 11.5px/1.2 var(--ui);color:var(--ink3);margin-bottom:7px}
+#matte .fl .val{margin-left:auto;color:var(--ink2);font-variant-numeric:tabular-nums}
+
 /* ---------- 分享 ---------- */
 #share{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
   background:rgba(14,18,26,.36);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -482,7 +518,7 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 #lbOpen{white-space:nowrap}
 @media(pointer:coarse){                                    /* 触屏：点得到、不缩放、拖得动 */
   input[type=text],input.valEdit,select,#panel textarea{font-size:11.5px}  /* 跟面板正文同号，不再单独放大 */
-  #panel button,#export button,#modal button,#share button,#top button{min-height:40px}
+  #panel button,#export button,#modal button,#share button,#top button,#matte button{min-height:40px}
   #panel .seg button{min-height:34px}
   input[type=range]{height:28px}
   input[type=range]::-webkit-slider-thumb,#fold::-webkit-slider-thumb{width:24px;height:24px;margin-top:-11px}
@@ -726,6 +762,18 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 <div id="postProg" role="status" aria-live="polite"><i id="postProgBar"></i><span id="postProgTx">正在生成动画…</span></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="modal" role="dialog" aria-modal="true" aria-label="裁剪图片"><div class="box"><img id="cropImg" alt=""></div><div class="row"><button id="cropOk">确定</button> <button class="ghost" id="cropNo">取消</button></div></div>
+<div id="matte" role="dialog" aria-modal="true" aria-label="抠图"><div class="card">
+ <div class="mhead"><b>抠图</b><span class="sub" id="mtInfo"></span></div>
+ <div class="mstage"><div class="mwrap"><canvas id="mtCv"></canvas><button id="mtUndo" class="dis" title="撤销" aria-label="撤销"><svg viewBox="0 0 24 24"><path d="M9.4 14.6 4.8 10l4.6-4.6"/><path d="M4.8 10h9.4a4.6 4.6 0 0 1 0 9.2h-3.4"/></svg></button></div></div>
+ <div class="mnote" id="mtNote"></div>
+ <div class="mrow" id="mtPick"><button class="soft" id="mtCut">抠图</button><button class="soft" id="mtRaw">原图</button><button class="ghost" id="mtX">取消</button></div>
+ <div id="mtEdit" style="display:none">
+  <div class="mrow"><button class="soft" id="mtAuto">自动抠图</button></div>
+  <div class="seg full" id="mtTool"><button data-t="keep" class="on">保留</button><button data-t="erase" class="ghost">擦除</button></div>
+  <div class="fld"><div class="fl"><span>笔刷</span><span class="val" id="mtBV">52</span></div><input type="range" id="mtB" min="8" max="160" value="52"></div>
+  <div class="mrow"><button id="mtOk">确定</button><button class="ghost" id="mtNo">取消</button></div>
+ </div>
+</div></div>
 <div id="share" role="dialog" aria-modal="true" aria-label="分享"><div class="card"><b class="mark">分享</b>
  <div class="grid">
   <button id="shareGo" title="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg><span>分享给好友</span></button>
@@ -1557,8 +1605,356 @@ $('edClr').onclick=()=>{S.stk[tg()]=null;
  if(!stkAny())edOpen=false;                      // 一张贴面都不剩了，属性框自动收起来
  edSync();dirty=true};
 $('edUp').onclick=()=>$('fileStk').click();
-$('fileStk').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*m;c.height=im.height*m;c.getContext('2d').drawImage(im,0,0,c.width,c.height);
- S.stk[tg()]={u:c.toDataURL(f.type==='image/png'?'image/png':'image/jpeg',.85),x:CX,y:CZ,s:SW,r:0,n:++stkN};edOpen=true;edSync();dirty=true;sizeCheck()};im.src=r.result};r.readAsDataURL(f)};
+/* ===== 抠图：导入贴图先问一句「抠图 / 原图」 =====
+   纯前端传统算法，不走模型也不联网：底色干净走色度键，
+   底色花就先转 Lab 算测地距离，最后用导向滤波把蒙版贴回真实边缘。
+   工作分辨率沿用贴图的 1000px 上限。 */
+const MSOFT=8;                                   /* 边缘羽化宽度，固定值 */
+let mW=0,mH=0,mSrc=null,mLAB=null,mGRAY=null,mA=null,mUndo=[],
+    mTool='keep',mBrush=52,mPaint=false,mLast=null,mBase=null,mPng=false,mBusy=false,mRaf=0,
+    mAutoOn=false,mAutoA=null;      /* 自动抠图是个开关；算过一次就留着，再点不用重算 */
+const MC=$('mtCv'),mcx=MC.getContext('2d');
+const mClamp=(v,a,b)=>v<a?a:v>b?b:v;
+const mSS=(e0,e1,x)=>{if(e1<=e0)return x<e0?0:1;let t=(x-e0)/(e1-e0);t=t<0?0:t>1?1:t;return t*t*(3-2*t)};
+const mNote=t=>{$('mtNote').textContent=t||''};
+function stkPut(u){S.stk[tg()]={u:u,x:CX,y:CZ,s:SW,r:0,n:++stkN};edOpen=true;edSync();dirty=true;sizeCheck()}
+
+/* sRGB → Lab：0..255 的线性化值先存表，之后逐像素只查表 */
+const MLIN=new Float32Array(256);
+for(let i=0;i<256;i++){const c=i/255;MLIN[i]=c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)}
+function mLabOf(r,g,b,out,o){
+ const R=MLIN[r],G=MLIN[g],Bl=MLIN[b];
+ let X=(0.4124*R+0.3576*G+0.1805*Bl)/0.95047,Y=0.2126*R+0.7152*G+0.0722*Bl,Z=(0.0193*R+0.1192*G+0.9505*Bl)/1.08883;
+ X=X>0.008856?Math.cbrt(X):7.787*X+16/116;Y=Y>0.008856?Math.cbrt(Y):7.787*Y+16/116;Z=Z>0.008856?Math.cbrt(Z):7.787*Z+16/116;
+ out[o]=116*Y-16;out[o+1]=500*(X-Y);out[o+2]=200*(Y-Z)}
+const mD3=(l1,a1,b1,l2,a2,b2)=>{const dl=l1-l2,da=a1-a2,db=b1-b2;return Math.sqrt(dl*dl+da*da+db*db)};
+
+/* 羽化（可分离盒式模糊）。只准用在导向滤波之前 ——
+   导向滤波才是保边的最后一道，它后面再糊一次等于把刚贴好的边缘又抹掉。 */
+function mFeather(a,w,h,r){
+ if(r<1)return a;
+ const t=new Float32Array(w*h);
+ for(let y=0;y<h;y++){const row=y*w;
+  for(let x=0;x<w;x++){let acc=0,cnt=0;
+   for(let k=-r;k<=r;k++){const xx=x+k;if(xx<0||xx>=w)continue;acc+=a[row+xx];cnt++}
+   t[row+x]=acc/cnt}}
+ for(let x=0;x<w;x++)for(let y=0;y<h;y++){let acc=0,cnt=0;
+  for(let k=-r;k<=r;k++){const yy=y+k;if(yy<0||yy>=h)continue;acc+=t[yy*w+x];cnt++}
+  a[y*w+x]=acc/cnt}
+ return a}
+
+/* 积分图 + 盒式均值 + 导向滤波 */
+function mSat(a,w,h){
+ const S=new Float64Array((w+1)*(h+1)),W1=w+1;
+ for(let y=0;y<h;y++){let rs=0;for(let x=0;x<w;x++){rs+=a[y*w+x];S[(y+1)*W1+x+1]=S[y*W1+x+1]+rs}}
+ return S}
+function mBox(S,w,h,r){
+ const o=new Float32Array(w*h),W1=w+1;
+ for(let y=0;y<h;y++){const y0=Math.max(0,y-r),y1=Math.min(h-1,y+r);
+  for(let x=0;x<w;x++){const x0=Math.max(0,x-r),x1=Math.min(w-1,x+r);
+   o[y*w+x]=(S[(y1+1)*W1+x1+1]-S[y0*W1+x1+1]-S[(y1+1)*W1+x0]+S[y0*W1+x0])/((x1-x0+1)*(y1-y0+1))}}
+ return o}
+function mGuided(I,p,w,h,r,eps){
+ const mI=mBox(mSat(I,w,h),w,h,r),mp=mBox(mSat(p,w,h),w,h,r);
+ const II=new Float32Array(w*h),Ip=new Float32Array(w*h);
+ for(let i=0;i<w*h;i++){II[i]=I[i]*I[i];Ip[i]=I[i]*p[i]}
+ const mII=mBox(mSat(II,w,h),w,h,r),mIp=mBox(mSat(Ip,w,h),w,h,r);
+ const A=new Float32Array(w*h),B=new Float32Array(w*h);
+ for(let k=0;k<w*h;k++){const v=mII[k]-mI[k]*mI[k],cc=mIp[k]-mI[k]*mp[k],a=cc/(v+eps);A[k]=a;B[k]=mp[k]-a*mI[k]}
+ const mA=mBox(mSat(A,w,h),w,h,r),mB=mBox(mSat(B,w,h),w,h,r);
+ const q=new Float32Array(w*h);
+ for(let m=0;m<w*h;m++)q[m]=mClamp(mA[m]*I[m]+mB[m],0,1);
+ return q}
+
+/* 最小堆 + Dijkstra */
+function MHeap(cap){this.v=new Int32Array(cap+1);this.d=new Float64Array(cap+1);this.n=0}
+MHeap.prototype.push=function(v,d){
+ let i=++this.n;const V=this.v,D=this.d;V[i]=v;D[i]=d;
+ while(i>1){const p=i>>1;if(D[p]<=D[i])break;
+  const tv=V[p];V[p]=V[i];V[i]=tv;const td=D[p];D[p]=D[i];D[i]=td;i=p}
+ if(this.n>=this.v.length-1){const nv=new Int32Array(this.v.length*2),nd=new Float64Array(this.d.length*2);nv.set(this.v);nd.set(this.d);this.v=nv;this.d=nd}};
+MHeap.prototype.pop=function(){
+ const V=this.v,D=this.d,rv=V[1],rd=D[1];
+ V[1]=V[this.n];D[1]=D[this.n];this.n--;
+ let i=1;
+ for(;;){const l=i<<1,r=l+1;let s=i;
+  if(l<=this.n&&D[l]<D[s])s=l;
+  if(r<=this.n&&D[r]<D[s])s=r;
+  if(s===i)break;
+  const tv=V[s];V[s]=V[i];V[i]=tv;const td=D[s];D[s]=D[i];D[i]=td;i=s}
+ return[rv,rd]};
+function mDijkstra(dl,dw,dh,seeds){
+ /* dist 必须是 Float64：堆里存的是双精度值，若用 Float32Array 承装，
+    弹出来比 d>dist[v] 时会因自身舍入误差被误判成「过期」而整片跳过，
+    四邻域上开放率掉到一半以下，前沿铺不开几圈就断。 */
+ const n=dw*dh,dist=new Float64Array(n);
+ for(let i=0;i<n;i++)dist[i]=Infinity;
+ const heap=new MHeap(n*4);
+ for(let s=0;s<n;s++)if(seeds[s]){dist[s]=0;heap.push(s,0)}
+ while(heap.n>0){
+  const top=heap.pop(),v=top[0],d=top[1];
+  if(d>dist[v])continue;
+  const x=v%dw,y=(v-x)/dw,j=v*3,L0=dl[j],a0=dl[j+1],b0=dl[j+2];
+  for(let k=0;k<4;k++){
+   const nx=x+(k===0?-1:k===1?1:0),ny=y+(k===2?-1:k===3?1:0);
+   if(nx<0||ny<0||nx>=dw||ny>=dh)continue;
+   const u=ny*dw+nx,j2=u*3;
+   const nd=d+mD3(L0,a0,b0,dl[j2],dl[j2+1],dl[j2+2])+0.6;
+   if(nd<dist[u]){dist[u]=nd;heap.push(u,nd)}}}
+ return dist}
+
+/* 背景色聚类：k-means，只喂画面外圈那一带的像素 */
+function mKmeans(dl,samples,K,iters){
+ const n=samples.length/3,c=new Float32Array(K*3);
+ for(let k=0;k<K;k++){const t=Math.floor((k+0.5)*n/K)*3;c[k*3]=samples[t];c[k*3+1]=samples[t+1];c[k*3+2]=samples[t+2]}
+ const sums=new Float64Array(K*3),cnts=new Int32Array(K);
+ for(let it=0;it<iters;it++){
+  for(let i=0;i<K;i++){sums[i*3]=0;sums[i*3+1]=0;sums[i*3+2]=0;cnts[i]=0}
+  for(let p=0;p<n;p++){
+   const o=p*3;let best=0,bd=1e18;
+   for(let kk=0;kk<K;kk++){
+    const d=mD3(samples[o],samples[o+1],samples[o+2],c[kk*3],c[kk*3+1],c[kk*3+2]);
+    if(d<bd){bd=d;best=kk}}
+   sums[best*3]+=samples[o];sums[best*3+1]+=samples[o+1];sums[best*3+2]+=samples[o+2];cnts[best]++}
+  for(let m=0;m<K;m++){if(!cnts[m])continue;
+   c[m*3]=sums[m*3]/cnts[m];c[m*3+1]=sums[m*3+1]/cnts[m];c[m*3+2]=sums[m*3+2]/cnts[m]}}
+ const order=[];
+ for(let q=0;q<K;q++)order.push([q,cnts[q]]);
+ order.sort((A,B)=>B[1]-A[1]);
+ return{c:c,cnt:cnts,order:order}}
+
+/* 从画面四边洪泛（缩略图尺度） */
+function mFloodEdge(mask,w,h){
+ const n=w*h,seen=new Uint8Array(n),q=new Int32Array(n);let qs=0,qe=0;
+ const push=i=>{if(mask[i]&&!seen[i]){seen[i]=1;q[qe++]=i}};
+ for(let x=0;x<w;x++){push(x);push((h-1)*w+x)}
+ for(let y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+ while(qs<qe){const i=q[qs++],px=i%w,py=(i-px)/w;
+  if(px>0)push(i-1);if(px<w-1)push(i+1);if(py>0)push(i-w);if(py<h-1)push(i+w)}
+ return seen}
+function mDownLab(dw,dh){
+ const out=new Float32Array(dw*dh*3);
+ for(let y=0;y<dh;y++){
+  const y0=Math.floor(y*mH/dh),y1=Math.max(y0+1,Math.floor((y+1)*mH/dh));
+  for(let x=0;x<dw;x++){
+   const x0=Math.floor(x*mW/dw),x1=Math.max(x0+1,Math.floor((x+1)*mW/dw));
+   let L=0,A=0,B=0,c=0;
+   for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){const j=(yy*mW+xx)*3;L+=mLAB[j];A+=mLAB[j+1];B+=mLAB[j+2];c++}
+   const o=(y*dw+x)*3;out[o]=L/c;out[o+1]=A/c;out[o+2]=B/c}}
+ return out}
+function mUp(a,sw,sh,dw,dh){
+ const out=new Float32Array(dw*dh);
+ for(let y=0;y<dh;y++){
+  const fy=(y+0.5)*sh/dh-0.5,y0=Math.floor(fy),ty=fy-y0,ya=mClamp(y0,0,sh-1),yb=mClamp(y0+1,0,sh-1);
+  for(let x=0;x<dw;x++){
+   const fx=(x+0.5)*sw/dw-0.5,x0=Math.floor(fx),tx=fx-x0,xa=mClamp(x0,0,sw-1),xb=mClamp(x0+1,0,sw-1);
+   out[y*dw+x]=a[ya*sw+xa]*(1-tx)*(1-ty)+a[ya*sw+xb]*tx*(1-ty)+a[yb*sw+xa]*(1-tx)*ty+a[yb*sw+xb]*tx*ty}}
+ return out}
+
+/* 色度键：按到键色的 Lab 距离切一刀，软边过渡；只扣和画面边缘相连的部分，
+   主体内部的同色区域（白衬衫、深色阴影）因此得以保住。 */
+function mChromaAlpha(L,A,B,inner,outer){
+ const n=mW*mH,al=new Float32Array(n),m=new Uint8Array(n);
+ for(let i=0;i<n;i++){
+  const j=i*3,dl=mLAB[j]-L,da=mLAB[j+1]-A,db=mLAB[j+2]-B;
+  const d=Math.sqrt(dl*dl+da*da+db*db);
+  al[i]=mSS(inner,outer,d);
+  if(d<outer)m[i]=1}
+ const seen=new Uint8Array(n),q=new Int32Array(n);let qs=0,qe=0;
+ const push=i=>{if(m[i]&&!seen[i]){seen[i]=1;q[qe++]=i}};
+ for(let x=0;x<mW;x++){push(x);push((mH-1)*mW+x)}
+ for(let y=0;y<mH;y++){push(y*mW);push(y*mW+mW-1)}
+ while(qs<qe){const i=q[qs++],px=i%mW,py=(i-px)/mW;
+  if(px>0)push(i-1);if(px<mW-1)push(i+1);if(py>0)push(i-mW);if(py<mH-1)push(i+mW)}
+ for(let k=0;k<n;k++)if(!seen[k])al[k]=1;
+ return mFeather(al,mW,mH,Math.round(MSOFT*0.5))}
+
+/* 自动抠图：先用外圈像素聚一次背景色，聚得开就走通用解，聚不开就是纯色底 */
+function mAuto(){
+ return new Promise(resolve=>{
+  const S=Math.max(1,Math.round(Math.max(mW,mH)/240));
+  const dw=Math.max(10,Math.round(mW/S)),dh=Math.max(10,Math.round(mH/S)),n=dw*dh;
+  const dl=mDownLab(dw,dh),band=Math.max(2,Math.round(Math.min(dw,dh)*0.06)),K=4;
+  const samples=[];
+  for(let y=0;y<dh;y++)for(let x=0;x<dw;x++)
+   if(x<band||y<band||x>=dw-band||y>=dh-band){const o=(y*dw+x)*3;samples.push(dl[o],dl[o+1],dl[o+2])}
+  if(samples.length<12){mNote('图片太小，无法自动抠图');resolve(false);return}
+  const km=mKmeans(dl,samples,K,10),c=km.c;
+  let spread=0;
+  for(let a=0;a<K;a++)for(let b=a+1;b<K;b++){
+   const d=mD3(c[a*3],c[a*3+1],c[a*3+2],c[b*3],c[b*3+1],c[b*3+2]);
+   if(d>spread)spread=d}
+  mNote('分析中…');
+  if(spread<14){
+   /* 纯色底：占比最大的那个簇就是键色 */
+   const dom=km.order[0][0],L=c[dom*3],A=c[dom*3+1],B=c[dom*3+2];
+   const inner=mClamp(spread*1.6+8,10,34),so=mClamp(spread*0.8+6,6,24);
+   mA=mChromaAlpha(L,A,B,inner,inner+so);
+   mRender();mNote('判定为纯色底，已用色度键');resolve(true);return}
+  setTimeout(()=>{
+   const bgd=new Float32Array(n);let maxd=1e-6;
+   for(let i=0;i<n;i++){
+    let best=1e18;
+    for(let k=0;k<K;k++){
+     const d=mD3(dl[i*3],dl[i*3+1],dl[i*3+2],c[k*3],c[k*3+1],c[k*3+2]);
+     if(d<best)best=d}
+    bgd[i]=best;if(best>maxd)maxd=best}
+   const cx=(dw-1)/2,cy=(dh-1)/2,rr=Math.hypot(cx,cy);
+   const score=new Float32Array(n),sorted=new Float32Array(n);
+   for(let y=0;y<dh;y++)for(let x=0;x<dw;x++){
+    const i=y*dw+x,rad=Math.hypot(x-cx,y-cy)/rr;
+    score[i]=(bgd[i]/maxd)*(1-0.55*rad)}
+   sorted.set(score);sorted.sort();
+   const th=sorted[Math.floor(n*0.88)];
+   /* 前景种子：离背景色远、又靠中心的那一整片都当前景。
+      只取最大连通块的质心画一个圆的话，头像这种和躯干不连通的
+      部分会落在圆外，算出来就是半透明。 */
+   const seed=new Uint8Array(n);
+   for(let i=0;i<n;i++)if(score[i]>=th)seed[i]=1;
+   const fg=new Uint8Array(n);
+   for(let y=1;y<dh-1;y++)for(let x=1;x<dw-1;x++){
+    const i=y*dw+x;
+    if(seed[i]&&seed[i-1]&&seed[i+1]&&seed[i-dw]&&seed[i+dw])fg[i]=1}
+   /* 背景种子：贴着边框、又确实是背景色的那些。
+      不能无脑把整条边框当背景 —— 主体出画时会被从边上啃掉一圈。 */
+   const bg=new Uint8Array(n);let nb=0;
+   for(let y=0;y<dh;y++)for(let x=0;x<dw;x++)
+    if(x<band||y<band||x>=dw-band||y>=dh-band){const i=y*dw+x;if(bgd[i]<20){bg[i]=1;nb++}}
+   if(nb<n*0.002)                                   /* 主体占满画面时的兜底 */
+    for(let y=0;y<dh;y++)for(let x=0;x<dw;x++)
+     if(x<band||y<band||x>=dw-band||y>=dh-band)bg[y*dw+x]=1;
+   const Gb=mDijkstra(dl,dw,dh,bg),Gf=mDijkstra(dl,dw,dh,fg);
+   const coarse=new Float32Array(n);
+   for(let i=0;i<n;i++){
+    const sb=Gb[i],sf=Gf[i];
+    if(!isFinite(sb)&&!isFinite(sf))coarse[i]=1;
+    else if(!isFinite(sb))coarse[i]=0;
+    else if(!isFinite(sf))coarse[i]=1;
+    else coarse[i]=sb/(sb+sf)}
+   /* 与背景色相近、又能从画面边缘连通过的，一律判成背景。
+      条纹、渐变、噪点这类「不像背景色、但确实是背景」的地方，
+      测地距离只会给出中间值，留一层雾；这一步把它们收干净。 */
+   const close=new Uint8Array(n);
+   for(let i=0;i<n;i++)close[i]=bgd[i]<14?1:0;
+   const conn=mFloodEdge(close,dw,dh);
+   for(let i=0;i<n;i++)if(conn[i])coarse[i]=0;
+   for(let i=0;i<n;i++)coarse[i]=mSS(0.30,0.70,coarse[i]);   /* 把中间那一段拉开 */
+   setTimeout(()=>{
+    const up=mUp(coarse,dw,dh,mW,mH);
+    mFeather(up,mW,mH,Math.round(MSOFT*0.25));
+    const fine=mGuided(mGRAY,up,mW,mH,12,0.004);
+    mA=fine;mRender();
+    mNote('通用模式：测地距离 + 导向滤波');resolve(true)},0)},0)})}
+
+/* ---------- 画布与笔刷 ---------- */
+function mRender(){
+ if(!mW)return;
+ const im=mcx.createImageData(mW,mH),d=im.data,n=mW*mH;
+ for(let i=0,p=0;i<n;i++,p+=4){
+  d[p]=mSrc[p];d[p+1]=mSrc[p+1];d[p+2]=mSrc[p+2];d[p+3]=(mA[i]*255)|0}
+ mcx.putImageData(im,0,0)}
+function mSchedule(){if(mRaf)return;mRaf=requestAnimationFrame(()=>{mRaf=0;mRender()})}
+/* 撤销栈里只装「保留 / 擦除」涂出来的笔迹，自动抠图的结果永远不进栈 ——
+   想把自动抠图撤掉，就是再点一下「自动抠图」把它关掉。 */
+function mSyncUndo(){$('mtUndo').className=mUndo.length?'':'dis'}
+function mPushUndo(){mUndo.push(mA.slice());if(mUndo.length>12)mUndo.shift();mSyncUndo()}
+function mUndoOne(){const s=mUndo.pop();if(!s)return;mA=new Float32Array(s);mRender();mSyncUndo()}
+function mBrushAt(x,y,r,val){
+ const x0=Math.max(0,Math.floor(x-r)),x1=Math.min(mW-1,Math.ceil(x+r));
+ const y0=Math.max(0,Math.floor(y-r)),y1=Math.min(mH-1,Math.ceil(y+r)),r2=r*r;
+ for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++){
+  const dx=xx-x,dy=yy-y,d2=dx*dx+dy*dy;
+  if(d2>r2)continue;
+  const i=yy*mW+xx;
+  mA[i]=mA[i]+(val-mA[i])*mSS(0.25,1,1-Math.sqrt(d2)/r)}}
+function mBrushLine(x0,y0,x1,y1,val){
+ const r=mBrush/2,d=Math.hypot(x1-x0,y1-y0),n=Math.max(1,Math.ceil(d/(r*0.4)));
+ for(let i=0;i<=n;i++){const t=i/n;mBrushAt(x0+(x1-x0)*t,y0+(y1-y0)*t,r,val)}}
+const mToImg=e=>{const r=MC.getBoundingClientRect();return{x:(e.clientX-r.left)*mW/r.width,y:(e.clientY-r.top)*mH/r.height}};
+MC.addEventListener('pointerdown',e=>{
+ if(!mW||mBusy)return;
+ MC.setPointerCapture(e.pointerId);
+ mPushUndo();mPaint=true;mLast=mToImg(e);
+ mBrushAt(mLast.x,mLast.y,mBrush/2,mTool==='keep'?1:0);mRender()});
+MC.addEventListener('pointermove',e=>{
+ if(!mPaint||mBusy)return;
+ const p=mToImg(e);
+ mBrushLine(mLast.x,mLast.y,p.x,p.y,mTool==='keep'?1:0);
+ mLast=p;mSchedule()});
+const mEndPaint=()=>{mPaint=false;mLast=null};
+MC.addEventListener('pointerup',mEndPaint);MC.addEventListener('pointercancel',mEndPaint);
+addEventListener('blur',mEndPaint);
+
+/* ---------- 弹层 ---------- */
+const mClose=()=>{$('matte').style.display='none'};
+function mSetAuto(on){mAutoOn=on;$('mtAuto').className=on?'on':'soft'}
+function mSetTool(t){mTool=t;
+ const bs=$('mtTool').children;
+ for(let i=0;i<bs.length;i++)bs[i].className=bs[i].getAttribute('data-t')===t?'on':'ghost';
+ mNote(t==='keep'?'涂出要保留的部分':'涂掉不要的部分')}
+function mOpen(im,png){
+ const s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');
+ c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));
+ c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+ mBase=c;mPng=png;mW=0;mSrc=null;mBusy=false;
+ MC.width=c.width;MC.height=c.height;
+ mcx.clearRect(0,0,c.width,c.height);mcx.drawImage(c,0,0);
+ $('mtInfo').textContent=c.width+' × '+c.height;
+ mNote('要不要先抠掉背景？');
+ $('mtPick').style.display='';$('mtEdit').style.display='none';
+ $('matte').className='';$('matte').style.display='flex'}
+/* 抠图：从原图重建一份工作数据，反复进出都不会拿到上一次的结果 */
+function mCut(){
+ const bc=mBase.getContext('2d');
+ mW=mBase.width;mH=mBase.height;
+ if(MC.width!==mW||MC.height!==mH){MC.width=mW;MC.height=mH}
+ const d=bc.getImageData(0,0,mW,mH);
+ mSrc=new Uint8ClampedArray(d.data);
+ mLAB=new Float32Array(mW*mH*3);mGRAY=new Float32Array(mW*mH);
+ const t=[0,0,0];
+ for(let i=0,p=0,o=0;i<mW*mH;i++,p+=4,o+=3){
+  mLabOf(mSrc[p],mSrc[p+1],mSrc[p+2],t,0);
+  mLAB[o]=t[0];mLAB[o+1]=t[1];mLAB[o+2]=t[2];
+  mGRAY[i]=(0.2126*mSrc[p]+0.7152*mSrc[p+1]+0.0722*mSrc[p+2])/255}
+ mA=new Float32Array(mW*mH);mA.fill(1);mUndo=[];mAutoA=null;mSetAuto(false);mSyncUndo();
+ $('mtPick').style.display='none';$('mtEdit').style.display='';
+ $('matte').className='cut';
+ mSetTool('keep');mRender()}
+/* 确定：把蒙版烘成透明底的图。优先 WebP —— 带 alpha 又比 PNG 小一个量级，
+   分享链接的体积就是这么省下来的；浏览器不支持就退回 PNG，不能丢透明。 */
+function mOk(){
+ if(!mW){mClose();return}
+ const c=document.createElement('canvas');c.width=mW;c.height=mH;
+ const g=c.getContext('2d'),im=g.createImageData(mW,mH),d=im.data;
+ for(let i=0,p=0;i<mW*mH;i++,p+=4){
+  d[p]=mSrc[p];d[p+1]=mSrc[p+1];d[p+2]=mSrc[p+2];d[p+3]=(mA[i]*255)|0}
+ g.putImageData(im,0,0);
+ let u=c.toDataURL('image/webp',.92);
+ if(u.indexOf('data:image/webp')!==0)u=c.toDataURL('image/png');
+ mClose();stkPut(u)}
+$('fileStk').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{const im=new Image();im.onload=()=>mOpen(im,f.type==='image/png');im.src=r.result};
+ r.readAsDataURL(f)};
+$('mtRaw').onclick=()=>{mClose();stkPut(mBase.toDataURL(mPng?'image/png':'image/jpeg',.85))};
+$('mtCut').onclick=()=>mCut();
+$('mtX').onclick=()=>mClose();
+$('mtNo').onclick=()=>{$('mtPick').style.display='';$('mtEdit').style.display='none';$('matte').className='';mNote('要不要先抠掉背景？')};
+/* 自动抠图按一下打开（按钮变黑），再按一下关掉、图回到原图；
+   关掉时连笔迹一起清干净，不留半透明残渣。第三次按直接恢复上次的结果。 */
+$('mtAuto').onclick=()=>{
+ if(!mW||mBusy)return;
+ if(mAutoOn){mA.fill(1);mUndo=[];mSetAuto(false);mSyncUndo();mRender();mNote('已回到原图');return}
+ if(mAutoA){mA=new Float32Array(mAutoA);mUndo=[];mSetAuto(true);mSyncUndo();mRender();mNote('已恢复上次的抠图结果');return}
+ mBusy=true;mNote('分析中…');
+ mAuto().then(()=>{
+  mBusy=false;mAutoA=new Float32Array(mA);mUndo=[];mSetAuto(true);mSyncUndo()})
+ .catch(()=>{mBusy=false;mSetAuto(false);mNote('自动抠图失败，请用笔刷手动处理')})};
+$('mtUndo').onclick=()=>{if(!mBusy&&mUndo.length)mUndoOne()};
+$('mtOk').onclick=()=>mOk();
+$('mtB').oninput=e=>{mBrush=+e.target.value;$('mtBV').textContent=mBrush};
+(function(){const bs=$('mtTool').children;
+ for(let i=0;i<bs.length;i++)bs[i].onclick=function(){if(!mBusy)mSetTool(this.getAttribute('data-t'))}})();
 
 /* ===== 贴片：真的往场景里加平面网格 =====
    贴图是额外贴在两个大面上的独立贴片（不是印在纸上的图案）：正面是图，背面纯白。
@@ -2267,7 +2663,8 @@ document.querySelectorAll('#export button[data-x]').forEach(b=>b.onclick=async()
 
 /* ===== 通用：Esc 关弹层，点空白处收起导出菜单 ===== */
 addEventListener('keydown',e=>{if(e.key!=='Escape')return;
- if($('modal').style.display==='flex')$('cropNo').onclick();
+ if($('matte').style.display==='flex')$('mtX').onclick();
+ else if($('modal').style.display==='flex')$('cropNo').onclick();
  else if($('share').style.display==='flex')$('share').style.display='none';
  else $('export').style.display='none'});
 addEventListener('pointerdown',e=>{const m=$('export');if(m.style.display==='flex'&&!m.querySelector('.card').contains(e.target))m.style.display='none'});
