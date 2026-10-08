@@ -285,14 +285,15 @@ input.valEdit:focus{border-color:var(--ink3);box-shadow:0 0 0 3px rgba(26,34,51,
 #top button:hover{background:rgba(20,24,33,.06);color:var(--ink)}
 #top button:active{background:rgba(20,24,33,.14);color:var(--ink)}
 /* 分享页左上角的「首页」：从链接进来的页面才出现，点一下回到干净首页（网址里的分享参数一并丢掉）。
-   首页自己进来时它是 display:none，连占位都没有，首页的排布一点不受影响。 */
-#homeBtn{position:fixed;left:14px;top:calc(12px + env(safe-area-inset-top));z-index:6;
-  align-items:center;justify-content:center;width:36px;height:36px;padding:0;
+   首页自己进来时它是 display:none，连占位都没有，首页的排布一点不受影响。
+   预览左上角的「返回编辑」共用这一副样式和这个位置，只是换成左箭头、只在预览里出现。 */
+#homeBtn,#pvBack{position:fixed;left:14px;top:calc(12px + env(safe-area-inset-top));z-index:6;
+  display:flex;align-items:center;justify-content:center;width:36px;height:36px;padding:0;
   border-radius:999px;background:transparent;border-color:transparent;color:var(--ink2)}
-#homeBtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;
+#homeBtn svg,#pvBack svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round;display:block}
-#homeBtn:hover{background:rgba(20,24,33,.06);color:var(--ink)}
-#homeBtn:active{background:rgba(20,24,33,.14);color:var(--ink)}
+#homeBtn:hover,#pvBack:hover{background:rgba(20,24,33,.06);color:var(--ink)}
+#homeBtn:active,#pvBack:active{background:rgba(20,24,33,.14);color:var(--ink)}
 body.make #homeBtn{left:10px;top:calc(5px + env(safe-area-inset-top))}   /* 回复页顶栏里，跟右侧那颗对称 */
 /* 导出弹窗：跟分享同款 —— 中间一块毛玻璃卡，底下压着半透明暗底 */
 #export{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;z-index:10;display:none;align-items:center;justify-content:center;padding:20px;
@@ -746,8 +747,9 @@ button,input[type=range],.val,#foldV,#panel .bh{touch-action:manipulation}
 
 <div class="bar" id="slider"><span class="seg" id="viewBar"><button id="viewF">正面</button><button id="viewB" class="ghost">反面</button></span><span class="lb" id="lbOpen">展开</span><input type="range" id="fold" min="0" max="100" value="100"><span class="lb">折叠 <b id="foldV">100</b>%</span></div>
 <button id="homeBtn" title="首页" aria-label="首页" style="display:none"><svg viewBox="0 0 24 24"><path d="M4.2 10.7 12 4.3l7.8 6.4"/><path d="M6.1 10.5v8.1a1.6 1.6 0 0 0 1.6 1.6h8.6a1.6 1.6 0 0 0 1.6-1.6v-8.1"/></svg></button>
+<button id="pvBack" title="返回编辑" aria-label="返回编辑" style="display:none"><svg viewBox="0 0 24 24"><path d="M14.8 5.4 8.2 12l6.6 6.6"/></svg></button>
 <button id="guideBtn" title="怎么用" aria-label="怎么用"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M9.5 9.42a2.58 2.58 0 0 1 5.014.86c0 1.72-2.58 2.58-2.58 2.58"/><path d="M12 16.3h.01"/></svg></button>
-<div class="bar" id="top"><button id="saveBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24"><path d="M12 4v10.6"/><path d="M8.3 11 12 14.7 15.7 11"/><path d="M5.6 17.8v1.2A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-1.2"/></svg></button><button class="ghost" id="shareBtn" title="分享" aria-label="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg></button><button id="doneBtn" style="display:none">完成</button></div>
+<div class="bar" id="top"><button class="ghost" id="pvBtn" title="预览" aria-label="预览"><svg viewBox="0 0 24 24"><path d="M2.8 12C5.2 7.6 8.5 5.6 12 5.6s6.8 2 9.2 6.4c-2.4 4.4-5.7 6.4-9.2 6.4S5.2 16.4 2.8 12Z"/><circle cx="12" cy="12" r="2.6"/></svg></button><button id="saveBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24"><path d="M12 4v10.6"/><path d="M8.3 11 12 14.7 15.7 11"/><path d="M5.6 17.8v1.2A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-1.2"/></svg></button><button class="ghost" id="shareBtn" title="分享" aria-label="分享"><svg viewBox="0 0 24 24"><path d="M12 15.2V4.6"/><path d="M8.3 8.3 12 4.6l3.7 3.7"/><path d="M5.6 13.4v5.6A1.5 1.5 0 0 0 7.1 20.5h9.8a1.5 1.5 0 0 0 1.5-1.5v-5.6"/></svg></button><button id="doneBtn" style="display:none">完成</button></div>
 <div id="export" role="dialog" aria-modal="true" aria-label="导出"><div class="card"><b class="mark">导出</b>
  <div class="list">
   <button class="ghost" data-x="png-f">正面 PNG</button>
@@ -861,7 +863,7 @@ let loadSharedHook=null,gifHook=null,sizeCheckHook=null,shareOpenHook=null,share
 let edited=false;
 function setEdited(v){if(v===edited)return;edited=v;
  $('doneBtn').style.display=v?'':'none';
- $('saveBtn').style.display=$('shareBtn').style.display=v?'none':''}
+ $('pvBtn').style.display=$('saveBtn').style.display=$('shareBtn').style.display=v?'none':''}
 const inEditUI=t=>!!(t&&t.closest&&(t.closest('#panel')||t.closest('#modal')));
 addEventListener('input',e=>{if(e.isTrusted&&inEditUI(e.target))setEdited(true)},true);
 /* change 不限定在面板内：选图/选字体的 <input type=file> 挂在 body 上。
@@ -1232,13 +1234,45 @@ function anim(to,ms,zoom){return new Promise(r=>{const from=P,t0=performance.now
 /* 提示条上这两颗按钮同进同出：收起动画一启动就一起藏，动画落定再一起现 ——
    中间那 2.6 秒里谁也不许单独在场。「回复」只在带链接进来时才有，
    其余场合它 display 仍是 none，整个不占位，首页的排布一点不受影响。 */
-function hintBtns(on){for(const b of[$('repBtn'),$('mkBtn')]){b.style.visibility=on?'visible':'hidden';b.style.opacity=on?'1':'0'}}
+function hintBtns(on){
+ if(preview)on=false;           // 预览里没有提示按钮，出口是左上角那颗图标，它不归这里管
+ for(const b of[$('repBtn'),$('mkBtn')]){b.style.visibility=on?'visible':'hidden';b.style.opacity=on?'1':'0'}}
 async function openPaper(){if(busy)return;busy=true;const to=opened?100:0;   // 点一下展开，再点一下合上
  $('hintTxt').textContent='';hintBtns(0);
  await anim(to,2600,true);opened=!opened;busy=false;
+ if(pvExit){pvExit=false;closePreview();return}    // 折叠动画中途点了「返回编辑」，收尾交给退出那一侧
  $('hintTxt').textContent=opened?'点击合上':'点击展开';
  hintBtns(opened);
  layoutTags()}   // 展开和合上纸的大小差一倍，贴边的文字要跟着挪
+/* ===== 预览 =====
+   把手里这张纸条按收件人看到的样子过一遍。走的就是首页那条路：同一个 view 态、同一句
+   tagline、同一套「点一下展开、再点一下合上」。只多做两件事 —— 进出时记住并还原你手里的
+   折叠位置与视角，以及给一个回编辑页的出口 —— 预览里没有顶栏，出口就是左上角那颗返回图标。
+   预览里不放任何别的按钮：只有顶上的 tagline、底下的「点击展开／点击合上」，其余一律收干净。 */
+let preview=false,pvP=100,pvExit=false,pvCam=null,pvHome=null;
+async function openPreview(){
+ if(busy||mode==='view')return;
+ preview=true;pvP=P;pvCam={p:cam.position.clone(),t:ctl.target.clone()};busy=true;
+ mode='view';document.body.className='view';
+ $('hintTxt').textContent='';hintBtns(0);$('pvBack').style.display='';
+ pvHome=$('homeBtn').style.display;$('homeBtn').style.display='none';   // 左上角只能有一个出口，先让位
+ viewFace(1);applyView();updateViewD();
+ await anim(100,900,true);opened=false;busy=false;   // 落点就是首页那一版：合着、封面朝上
+ if(pvExit){pvExit=false;closePreview();return}
+ $('hintTxt').textContent='点击展开';
+ layoutTags();dirty=true}
+function closePreview(){
+ if(!preview)return;
+ if(busy){pvExit=true;return}     // 折叠动画还没落定，等它停了再退，免得两边抢着 setP
+ preview=false;pvExit=false;
+ mode='make';document.body.className='make';
+ $('pvBack').style.display='none';$('hintTxt').textContent='';
+ $('homeBtn').style.display=pvHome||'none';          // 还原「首页」，它是给带链接进来的人用的
+ hintBtns(0);
+ if(pvCam){cam.position.copy(pvCam.p);ctl.target.copy(pvCam.t);ctl.update();pvCam=null}
+ setP(pvP,false);applyView();dirty=true}
+$('pvBtn').onclick=()=>openPreview();
+$('pvBack').onclick=()=>closePreview();
 /* 归零：分享链接是给你看的那一份，进制作页时丢掉，从空白模板重新开始 */
 function resetPaper(){S=defaultS();sel=null;FULLSRC.f=FULLSRC.b=null;
  tabSel='L';edOpen=false;stkSig='';
@@ -1939,7 +1973,13 @@ $('fileStk').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)retu
 $('mtRaw').onclick=()=>{mClose();stkPut(mBase.toDataURL(mPng?'image/png':'image/jpeg',.85))};
 $('mtCut').onclick=()=>mCut();
 $('mtX').onclick=()=>mClose();
-$('mtNo').onclick=()=>{$('mtPick').style.display='';$('mtEdit').style.display='none';$('matte').className='';mNote('要不要先抠掉背景？')};
+/* 「取消」不是把编辑页藏起来，是把它整个退回刚导入的状态：蒙版填满、撤销栈清空、
+   自动抠图关掉、工具复选「保留」。否则再进编辑页，画布上留着的还是上一轮改到一半的图，
+   看着像是已经抠好了 —— 而它其实一个像素都没确定。 */
+$('mtNo').onclick=()=>{
+ mA.fill(1);mUndo=[];mAutoA=null;mSetAuto(false);mSyncUndo();mSetTool('keep');
+ $('mtPick').style.display='';$('mtEdit').style.display='none';$('matte').className='';
+ mRender();mNote('要不要先抠掉背景？')};
 /* 自动抠图按一下打开（按钮变黑），再按一下关掉、图回到原图；
    关掉时连笔迹一起清干净，不留半透明残渣。第三次按直接恢复上次的结果。 */
 $('mtAuto').onclick=()=>{
